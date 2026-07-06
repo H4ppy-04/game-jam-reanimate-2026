@@ -14,6 +14,35 @@ def resource_path(relative_path: str) -> Path:
     return base_path / relative_path
 
 
+sound_enabled = False
+try:
+    pygame.mixer.init()
+    sound_enabled = True
+except pygame.error as e:
+    logger.warning(f"Sound disabed: {e}")
+
+
+def queue_sound(sound):
+    if sound_enabled:
+        pygame.mixer.music.load(sound)
+    else:
+        logger.warning(f"Failed to load sound: {sound}")
+
+
+def play_sound(loops=-1):
+    if sound_enabled:
+        pygame.mixer.music.play(loops)
+    else:
+        logger.warning(f"Failed to play sound")
+
+
+def stop_sound():
+    if sound_enabled:
+        pygame.mixer.music.stop()
+    else:
+        logger.warning(f"Failed to stop sound")
+
+
 display = pygame.display.set_mode((1920, 1080))
 
 font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 50)
@@ -22,7 +51,7 @@ button_font = pygame.font.Font(
 )
 shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
-pygame.mixer.music.load(resource_path("assets/mainMenu.wav"))
+queue_sound(resource_path("assets/mainMenu.wav"))
 pygame.display.set_caption("Roll the Bones...")
 
 green_health_sprite = pygame.transform.scale2x(
@@ -356,7 +385,7 @@ player_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 1080 - 100)
 enemy_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 100)
 
 # begin playing menu music before anything
-pygame.mixer.music.play(-1)
+play_sound(loops=-1)
 
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
@@ -399,9 +428,9 @@ while True:
             match game_state:
                 case game_state.MENU:
                     game_state = game_state.GAME
-                    pygame.mixer.music.stop()
-                    pygame.mixer.music.load(resource_path("assets/gambling.wav"))
-                    pygame.mixer.music.play()
+                    stop_sound()
+                    queue_sound(resource_path("assets/gambling.wav"))
+                    play_sound()
 
                 case game_state.SHOP:
                     if shop_goback_button.rect.collidepoint(mx, my):
@@ -416,7 +445,7 @@ while True:
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
 
-                    pygame.mixer.music.stop()
+                    stop_sound()
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
