@@ -112,6 +112,43 @@ dice_image = {
 }
 
 
+class StoreItem(pygame.sprite.Sprite):
+    def __init__(self, image: pygame.Surface, caption: str, x: int, y: int, *groups):
+        super().__init__(*groups)
+
+        self.image = image
+        self.caption = caption
+        self.rect = self.image.get_rect()
+        self.rect.x = x
+        self.rect.y = y
+
+        self.caption_render = shop_font.render(
+            self.caption, True, (255, 255, 255), (20, 20, 20)
+        )
+
+        self.hovering = False
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+        if self.hovering:
+            logger.debug("hovering")
+            surface.blit(
+                self.caption_render,
+                (
+                    self.rect.centerx - self.caption_render.width / 2,
+                    self.rect.bottom + (self.caption_render.height / 2),
+                ),
+            )
+
+
+store_items = pygame.sprite.Group()
+
+store_items.add(
+    StoreItem(dice_image["white"]["1"], "Odd Only", 1920 // 2 + 50, 1080 // 2 + 50),
+    StoreItem(dice_image["red"]["2"], "Even Only", 1920 // 2 + 150, 1080 // 2 + 50),
+)
+
+
 class ButtonSmall:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.image.load(
@@ -172,6 +209,8 @@ class Dice:
         self.origin = x, y
 
         self.throw_timer = 0
+
+        self.uses = 3
 
     def reset_position(self):
         self.rect.x = self.origin[0]
@@ -327,6 +366,11 @@ while True:
 
         if event.type == pygame.MOUSEMOTION:
             mx, my = pygame.mouse.get_pos()
+            match game_state:
+                case game_state.SHOP:
+                    for sprite in store_items:
+                        sprite.hovering = sprite.rect.collidepoint(mx, my)
+
         if event.type == pygame.KEYDOWN:
             match game_state:
                 case game_state.MENU:
@@ -402,6 +446,9 @@ while True:
         pygame.draw.rect(
             display, (10, 10, 10), pygame.rect.Rect(1920 / 2, 1080 / 2, 25, 1080 / 2)
         )
+
+        for item in store_items:
+            item.draw(display)
 
         display.blit(dice_text, (1920 - 500, 1080 / 2 + 20))
 
