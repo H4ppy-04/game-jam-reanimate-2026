@@ -1,5 +1,6 @@
 import enum
 
+import random
 import pygame
 
 pygame.init()
@@ -17,9 +18,41 @@ health_sprite_height = 30
 
 cursor_sprite = pygame.transform.scale2x(pygame.image.load("./assets/kenney_cursor-pixel-pack/Tiles/tile_0168.png").convert_alpha())
 
+dice_image = {
+        "red": {
+            "1": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border1.png").convert_alpha(),
+            "2": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border2.png").convert_alpha(),
+            "3": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border3.png").convert_alpha(),
+            "4": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border4.png").convert_alpha(),
+            "5": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border5.png").convert_alpha(),
+            "6": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border6.png").convert_alpha()
+            },
+        "white": {
+            "1": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border1.png").convert_alpha(),
+            "2": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border2.png").convert_alpha(),
+            "3": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border3.png").convert_alpha(),
+            "4": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border4.png").convert_alpha(),
+            "5": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border5.png").convert_alpha(),
+            "6": pygame.image.load(f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border6.png").convert_alpha()
+            }
+        }
+
 class Dice:
     def __init__(self) -> None:
-        pass
+        self.image = pygame.Surface((156, 68), pygame.SRCALPHA)
+        self.red_die = dice_image["red"][random.choice([ i for i in dice_image["red"]])]
+        self.red_die.set_colorkey((0, 0, 0))
+        self.white_die = dice_image["white"][random.choice([i for i in dice_image["red"]])]
+        self.white_die.set_colorkey((0, 0, 0))
+
+        self.image.blit(self.red_die, (0, 0))
+        self.image.blit(self.white_die, (self.red_die.get_rect().width + 5, 0))
+        self.rect = self.image.get_rect()
+        self.rect.x = 1920 // 2 - self.rect.width / 2
+        self.rect.y = 1080 - 100
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
 
 
 class GameState(enum.Enum):
@@ -79,6 +112,8 @@ def draw_enemy_health(surface):
 
 total_lives = 3
 
+dice = Dice()
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -112,6 +147,12 @@ while True:
 
         # draw PLAYER dialogue box
         draw_dialogue_box(display, 150, 1080 // 2)
+
+        # draw ENEMY dialogue box
+        draw_dialogue_box(display, 1920 - 500, 1080 // 10)
+
+        # draw dice
+        dice.draw(display)
 
     if game_state == game_state.GAME_OVER:
         # TODO: do game over stuff
