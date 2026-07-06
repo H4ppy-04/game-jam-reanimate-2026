@@ -1,6 +1,7 @@
 import enum
 
 import random
+import sys
 import pygame
 
 pygame.init()
@@ -10,6 +11,7 @@ display = pygame.display.set_mode((1920, 1080))
 
 font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 50)
 button_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 34)
+shop_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 24)
 
 pygame.mixer.music.load("./assets/mainMenu.wav")
 pygame.display.set_caption("Roll the Bones...")
@@ -18,11 +20,21 @@ green_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeC
 red_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeCellRed.png"))
 
 button_sprite_size = pygame.transform.scale2x(pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha()).get_rect()
+button_small_sprite_size = pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha().get_rect()
 
 health_sprite_width = 10
 health_sprite_height = 30
 
 cursor_sprite = pygame.transform.scale2x(pygame.image.load("./assets/kenney_cursor-pixel-pack/Tiles/tile_0168.png").convert_alpha())
+coin_sprite = pygame.transform.scale2x(pygame.image.load("./assets/coin.png").convert_alpha())
+
+class Objective(enum.Enum):
+    ROLL_LOWEST_NUM = 1
+    ROLL_HIGHEST_NUM = 2
+
+
+        
+    
 
 dice_image = {
         "red": {
@@ -45,6 +57,17 @@ dice_image = {
 
 
 
+class ButtonSmall:
+    def __init__(self, x, y, text) -> None:
+        self.image = pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha()
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+        self.text = button_font.render(text, False, (0, 0, 0))
+        self.image.blit(self.text, (self.rect.width / 2 - self.text.width / 2, self.rect.height / 2 - self.text.height / 2))
+
+    def draw(self, display: pygame.Surface):
+        display.blit(self.image, self.rect)
+
 class Button:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.transform.scale2x(pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha())
@@ -58,24 +81,66 @@ class Button:
 
 
 class Dice:
-    def __init__(self) -> None:
-        self.image = pygame.Surface((156, 68), pygame.SRCALPHA)
+    SIZE = 156, 68
+    def __init__(self, x, y) -> None:
+        self.image = pygame.Surface((Dice.SIZE[0], Dice.SIZE[1]), pygame.SRCALPHA)
+
+        self.roll_history = []
         self.roll()
+
         self.rect = self.image.get_rect()
-        self.rect.x = 1920 // 2 - self.rect.width / 2
-        self.rect.y = 1080 - 100
+        # self.rect.x = 1920 // 2 - self.rect.width / 2
+        # self.rect.y = 1080 - 100
+        self.rect.x = x
+        self.rect.y = y
+
+        self.origin = x, y
+
+        self.throw_timer = 0
+
+    def reset_position(self):
+        self.rect.x = self.origin[0]
+        self.rect.y = self.origin[1]
 
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
+    def update(self):
+        if self.rect.y != self.origin[1]:
+            self.throw_timer += 1
+            if self.throw_timer > 250:
+                self.rect.x = self.origin[0]
+                self.rect.y = self.origin[1]
+                self.throw_timer = 0
+
     def roll(self):
-        self.red_die = dice_image["red"][random.choice([ i for i in dice_image["red"]])]
+        self.index_red = random.choice([ i for i in dice_image["red"]])
+        self.index_white = random.choice([ i for i in dice_image["white"]])
+
+        self.red_die = dice_image["red"][self.index_red]
         self.red_die.set_colorkey((0, 0, 0))
-        self.white_die = dice_image["white"][random.choice([i for i in dice_image["red"]])]
+        self.white_die = dice_image["white"][self.index_white]
         self.white_die.set_colorkey((0, 0, 0))
 
         self.image.blit(self.red_die, (0, 0))
         self.image.blit(self.white_die, (self.red_die.get_rect().width + 5, 0))
+
+        self.roll_history.append(self.total())
+
+    def throw(self, enemy=False):
+        """ throw dice into screen """
+        self.roll()
+        self.rect.x = 1920 / 2 - self.rect.width / 2
+        self.rect.y = 1080 - 300
+
+        if enemy:
+            self.rect.x = 1920 / 2 - self.rect.width / 2
+            self.rect.y = 300
+
+    def total(self) -> int:
+        _total =  int(self.index_red) + int(self.index_white)
+        print(f"total: {_total}")
+        return _total
 
 
 
@@ -110,7 +175,12 @@ game_state = GameState.MENU
 
 play_text = font.render("PLAY GAME", True, (255, 255, 255))
 shop_text = font.render("PLAYER SHOP", True, (255, 255, 255))
+game_over_text = font.render("GAME OVER", True, (255, 255, 255))
+artifacts_text = button_font.render("Artifacts (powerups)", True, (255, 255, 255))
+dice_text = button_font.render("Dice", True, (255, 255, 255))
 mx, my = 0, 0
+
+coins = 0
 
 # disable default cursor
 pygame.mouse.set_visible(False)
@@ -118,6 +188,7 @@ pygame.mouse.set_visible(False)
 player_healthbar = Healthbar(10, 10)
 end_turn_button = Button(1920 - (button_sprite_size.width + 30), 1080 - (button_sprite_size.height + 200), "End Turn")
 shop_button = Button(30, 1080 - (button_sprite_size.height + 10), "Shop")
+shop_goback_button = ButtonSmall(1920 - 200, 1080 / 2 - button_small_sprite_size.height, "Back")
 
 def draw_player_health(surface: pygame.Surface, total_lives):
     index = 0
@@ -139,35 +210,67 @@ def draw_enemy_health(surface):
 
 total_lives = 3
 
-dice = Dice()
+player_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 1080 - 100)
+enemy_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 100)
+
+# enemy_dice.rect.x = 1920 / 2
+# enemy_dice.rect.y = 100
 
 # begin playing menu music before anything
 pygame.mixer.music.play(-1)
+
+player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
+enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
+
+def render_roll_text(roll) -> pygame.Surface:
+    return font.render(f"I rolled a {roll}!", True, (0, 0, 0))
+
+def player_speak_text(text) -> pygame.Surface:
+    return font.render(text, True, (0, 0, 0))
+
+
+enemy_roll_timer = 0
+start_enemy_timer = False
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
             pygame.quit()
+            sys.exit()
 
         if event.type == pygame.MOUSEMOTION:
             mx, my = pygame.mouse.get_pos()
+        if event.type == pygame.KEYDOWN:
+            match game_state:
+                case game_state.MENU:
+                    if event.key == pygame.K_RETURN:
+                        game_state = game_state.GAME
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             match game_state:
                 case game_state.MENU:
                     game_state = game_state.GAME
                     pygame.mixer.music.stop()
+                    pygame.mixer.music.load("./assets/gambling.wav")
+                    pygame.mixer.music.play()
 
                 case game_state.SHOP:
-                    ...
+                    if shop_goback_button.rect.collidepoint(mx, my):
+                        game_state = game_state.GAME
 
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
 
+                    if player_dice.rect.collidepoint(mx, my):
+                        player_dice.throw()
+                        player_render_roll_text = render_roll_text(player_dice.total())
+                        start_enemy_timer = True
+
                     pygame.mixer.music.stop()
 
                 case game_state.GAME_OVER:
-                    ...
+                    game_state = game_state.MENU
 
     if game_state == game_state.MENU:
         display.fill((25, 25, 25))
@@ -185,6 +288,24 @@ while True:
         # draw lives still
         draw_player_health(display, total_lives)
 
+        # button to go back
+        shop_goback_button.draw(display)
+
+        # draw money
+        display.blit(coin_sprite, (1920 - (coin_sprite.get_rect().width + 120), 15))
+        display.blit(shop_font.render(f"{coins} Coins", False, (255, 255, 255)), (1920 - 120, 20))
+
+        # middle line through screen
+        pygame.draw.rect(display, (10, 10, 10), pygame.rect.Rect(0, 1080 / 2, 1920, 25))
+        
+        # draw artifacts text
+        display.blit(artifacts_text, (1920 / 7, (1080 / 2) + 20))
+
+        # draw line from center, center, to center, bottom
+        pygame.draw.rect(display, (10, 10, 10), pygame.rect.Rect(1920 / 2, 1080 / 2, 25, 1080 /2))
+
+        display.blit(dice_text, (1920 - 500, 1080 / 2 + 20))
+
 
     if game_state == game_state.GAME:
         display.fill((50, 50, 50))
@@ -198,20 +319,50 @@ while True:
 
         # draw PLAYER dialogue box
         draw_dialogue_box(display, 150, 1080 // 2)
+        display.blit(player_render_roll_text, (175, 1080 // 2 + 20))
 
         # draw ENEMY dialogue box
         draw_dialogue_box(display, 1920 - 500, 1080 // 10)
+        display.blit(enemy_render_roll_text, (1920 - 480, 1080 // 10 + 20))
 
         # draw dice
-        dice.draw(display)
+        player_dice.draw(display)
+        enemy_dice.draw(display)
+
+        player_dice.update()
+        enemy_dice.update()
 
         # draw end turn button
         end_turn_button.draw(display)
         shop_button.draw(display)
 
+        if start_enemy_timer:
+            enemy_roll_timer += 1
+            if enemy_roll_timer > 250:
+                enemy_dice.roll()
+                enemy_dice.throw(enemy=True)
+                start_enemy_timer = False
+                enemy_roll_timer = 0
+                enemy_render_roll_text = render_roll_text(enemy_dice.total())
+                if enemy_dice.total() > player_dice.roll_history[len(player_dice.roll_history) - 1]:
+                    total_lives -= 1
+                    # display.blit(player_speak_text("I lost... (ow)"), (175, 1080 // 2 + 20))
+                    # display.blit(player_speak_text("I won!"), (1920 - 480, 1080 // 10 + 20))
+                    if total_lives == 0:
+                        game_state = GameState.GAME_OVER
+                else:
+                    ...
+                    # display.blit(player_speak_text("I won!"), (175, 1080 // 2 + 20))
+                    # display.blit(player_speak_text("I lost!?"), (1920 - 480, 1080 // 10 + 20))
+
+        if total_lives == 0:
+            game_state = GameState.GAME_OVER
+
+
     if game_state == game_state.GAME_OVER:
         # TODO: do game over stuff
-        pass
+        display.fill((20, 20, 20))
+        display.blit(game_over_text, (1920 / 2 - game_over_text.width/ 2, 1080 / 2 - game_over_text.height / 2))
 
     # cursor should apply across all game states
     display.blit(cursor_sprite, (mx, my))
