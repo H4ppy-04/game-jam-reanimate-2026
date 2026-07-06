@@ -1,6 +1,7 @@
 import enum
 import random
 import sys
+from pathlib import Path
 
 import pygame
 from loguru import logger
@@ -8,30 +9,41 @@ from loguru import logger
 pygame.init()
 
 
+def resource_path(relative_path: str) -> Path:
+    base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
+    return base_path / relative_path
+
+
 display = pygame.display.set_mode((1920, 1080))
 
-font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 50)
-button_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 34)
-shop_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 24)
+font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 50)
+button_font = pygame.font.Font(
+    resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 34
+)
+shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
-pygame.mixer.music.load("./assets/mainMenu.wav")
+pygame.mixer.music.load(resource_path("assets/mainMenu.wav"))
 pygame.display.set_caption("Roll the Bones...")
 
 green_health_sprite = pygame.transform.scale2x(
-    pygame.image.load("./assets/lifeCellGreen.png")
+    pygame.image.load(resource_path("assets/lifeCellGreen.png"))
 )
 red_health_sprite = pygame.transform.scale2x(
-    pygame.image.load("./assets/lifeCellRed.png")
+    pygame.image.load(resource_path("assets/lifeCellRed.png"))
 )
 
 button_sprite_size = pygame.transform.scale2x(
     pygame.image.load(
-        "./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+        resource_path(
+            "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+        )
     ).convert_alpha()
 ).get_rect()
 button_small_sprite_size = (
     pygame.image.load(
-        "./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+        resource_path(
+            "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+        )
     )
     .convert_alpha()
     .get_rect()
@@ -42,11 +54,11 @@ health_sprite_height = 30
 
 cursor_sprite = pygame.transform.scale2x(
     pygame.image.load(
-        "./assets/kenney_cursor-pixel-pack/Tiles/tile_0168.png"
+        resource_path("assets/kenney_cursor-pixel-pack/Tiles/tile_0168.png")
     ).convert_alpha()
 )
 coin_sprite = pygame.transform.scale2x(
-    pygame.image.load("./assets/coin.png").convert_alpha()
+    pygame.image.load(resource_path("assets/coin.png")).convert_alpha()
 )
 
 
@@ -71,42 +83,42 @@ def draw_objective(surface: pygame.Surface, objective: Objective):
 dice_image = {
     "red": {
         "1": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border1.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border1.png")
         ).convert_alpha(),
         "2": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border2.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border2.png")
         ).convert_alpha(),
         "3": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border3.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border3.png")
         ).convert_alpha(),
         "4": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border4.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border4.png")
         ).convert_alpha(),
         "5": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border5.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border5.png")
         ).convert_alpha(),
         "6": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieRed_border6.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieRed_border6.png")
         ).convert_alpha(),
     },
     "white": {
         "1": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border1.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border1.png")
         ).convert_alpha(),
         "2": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border2.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border2.png")
         ).convert_alpha(),
         "3": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border3.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border3.png")
         ).convert_alpha(),
         "4": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border4.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border4.png")
         ).convert_alpha(),
         "5": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border5.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border5.png")
         ).convert_alpha(),
         "6": pygame.image.load(
-            f"./assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border6.png"
+            resource_path("assets/kenney_boardgame-pack/PNG/Dice/dieWhite_border6.png")
         ).convert_alpha(),
     },
 }
@@ -131,7 +143,6 @@ class StoreItem(pygame.sprite.Sprite):
     def draw(self, surface):
         surface.blit(self.image, self.rect)
         if self.hovering:
-            logger.debug("hovering")
             surface.blit(
                 self.caption_render,
                 (
@@ -152,7 +163,9 @@ store_items.add(
 class ButtonSmall:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.image.load(
-            "./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+            resource_path(
+                "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+            )
         ).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
@@ -173,7 +186,9 @@ class Button:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.transform.scale2x(
             pygame.image.load(
-                "./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+                resource_path(
+                    "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
+                )
             ).convert_alpha()
         )
         self.rect = self.image.get_rect()
@@ -385,7 +400,7 @@ while True:
                 case game_state.MENU:
                     game_state = game_state.GAME
                     pygame.mixer.music.stop()
-                    pygame.mixer.music.load("./assets/gambling.wav")
+                    pygame.mixer.music.load(resource_path("assets/gambling.wav"))
                     pygame.mixer.music.play()
 
                 case game_state.SHOP:
