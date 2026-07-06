@@ -9,9 +9,12 @@ pygame.init()
 display = pygame.display.set_mode((1920, 1080))
 
 font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 50)
+button_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 34)
 
 green_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeCellGreen.png"))
 red_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeCellRed.png"))
+
+button_sprite_size = pygame.transform.scale2x(pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha()).get_rect()
 
 health_sprite_width = 10
 health_sprite_height = 30
@@ -37,16 +40,24 @@ dice_image = {
             }
         }
 
+
+
+class Button:
+    def __init__(self, x, y, text) -> None:
+        self.image = pygame.transform.scale2x(pygame.image.load("./assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png").convert_alpha())
+        self.rect = self.image.get_rect()
+        self.rect.x, self.rect.y = x, y
+        self.text = button_font.render(text, False, (0, 0, 0))
+        self.image.blit(self.text, (self.rect.width / 2 - self.text.width / 2, self.rect.height / 2 - self.text.height / 2))
+
+    def draw(self, display: pygame.Surface):
+        display.blit(self.image, self.rect)
+
+
 class Dice:
     def __init__(self) -> None:
         self.image = pygame.Surface((156, 68), pygame.SRCALPHA)
-        self.red_die = dice_image["red"][random.choice([ i for i in dice_image["red"]])]
-        self.red_die.set_colorkey((0, 0, 0))
-        self.white_die = dice_image["white"][random.choice([i for i in dice_image["red"]])]
-        self.white_die.set_colorkey((0, 0, 0))
-
-        self.image.blit(self.red_die, (0, 0))
-        self.image.blit(self.white_die, (self.red_die.get_rect().width + 5, 0))
+        self.roll()
         self.rect = self.image.get_rect()
         self.rect.x = 1920 // 2 - self.rect.width / 2
         self.rect.y = 1080 - 100
@@ -54,11 +65,22 @@ class Dice:
     def draw(self, surface):
         surface.blit(self.image, self.rect)
 
+    def roll(self):
+        self.red_die = dice_image["red"][random.choice([ i for i in dice_image["red"]])]
+        self.red_die.set_colorkey((0, 0, 0))
+        self.white_die = dice_image["white"][random.choice([i for i in dice_image["red"]])]
+        self.white_die.set_colorkey((0, 0, 0))
+
+        self.image.blit(self.red_die, (0, 0))
+        self.image.blit(self.white_die, (self.red_die.get_rect().width + 5, 0))
+
+
 
 class GameState(enum.Enum):
     MENU = 0,
     GAME = 1
     GAME_OVER = 2
+    SHOP = 3
 
 
 class Healthbar(pygame.sprite.Sprite):
@@ -84,12 +106,15 @@ def draw_dialogue_box(surface, x, y):
 game_state = GameState.MENU
 
 play_text = font.render("PLAY GAME", True, (255, 255, 255))
+shop_text = font.render("PLAYER SHOP", True, (255, 255, 255))
 mx, my = 0, 0
 
 # disable default cursor
 pygame.mouse.set_visible(False)
 
 player_healthbar = Healthbar(10, 10)
+end_turn_button = Button(1920 - (button_sprite_size.width + 30), 1080 - (button_sprite_size.height + 200), "End Turn")
+shop_button = Button(30, 1080 - (button_sprite_size.height + 10), "Shop")
 
 def draw_player_health(surface: pygame.Surface, total_lives):
     index = 0
@@ -127,15 +152,31 @@ while True:
                 case game_state.MENU:
                     game_state = game_state.GAME
 
+                case game_state.SHOP:
+                    ...
+
+                case game_state.GAME:
+                    if shop_button.rect.collidepoint(mx, my):
+                        game_state = game_state.SHOP
+
+                case game_state.GAME_OVER:
+                    ...
 
     if game_state == game_state.MENU:
-        print("game state menu active")
         display.fill((25, 25, 25))
-        display.blit(cursor_sprite, (mx, my))
+
         display.blit(play_text, (1920 / 2 - play_text.width / 2, 1080 / 2 - play_text.height / 2))
 
+    if game_state == game_state.SHOP:
+        # buy power ups
+        # choose dice
+        display.fill((50, 50, 50))
+
+        display.blit(cursor_sprite, (mx, my))
+        display.blit(shop_text, (1920 / 2 - shop_text.width / 2, 1080 / 10 - shop_text.height / 2))
+
+
     if game_state == game_state.GAME:
-        print("actual game screen")
         display.fill((50, 50, 50))
 
         # draw Healthbar
@@ -154,8 +195,15 @@ while True:
         # draw dice
         dice.draw(display)
 
+        # draw end turn button
+        end_turn_button.draw(display)
+        shop_button.draw(display)
+
     if game_state == game_state.GAME_OVER:
         # TODO: do game over stuff
         pass
+
+    # cursor should apply across all game states
+    display.blit(cursor_sprite, (mx, my))
 
     pygame.display.update()
