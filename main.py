@@ -11,6 +11,9 @@ display = pygame.display.set_mode((1920, 1080))
 font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 50)
 button_font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 34)
 
+pygame.mixer.music.load("./assets/mainMenu.wav")
+pygame.display.set_caption("Roll the Bones...")
+
 green_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeCellGreen.png"))
 red_health_sprite = pygame.transform.scale2x(pygame.image.load("./assets/lifeCellRed.png"))
 
@@ -122,7 +125,6 @@ def draw_player_health(surface: pygame.Surface, total_lives):
     for i in range(0, (9 * (health_sprite_width * 2)), health_sprite_width * 2):
         if index > 9:
             return;
-        print(index)
         if index >= total_lives:
             surface.blit(red_health_sprite, (i, 10))
         else:
@@ -139,6 +141,8 @@ total_lives = 3
 
 dice = Dice()
 
+# begin playing menu music before anything
+pygame.mixer.music.play(-1)
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
@@ -151,6 +155,7 @@ while True:
             match game_state:
                 case game_state.MENU:
                     game_state = game_state.GAME
+                    pygame.mixer.music.stop()
 
                 case game_state.SHOP:
                     ...
@@ -158,6 +163,8 @@ while True:
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
+
+                    pygame.mixer.music.stop()
 
                 case game_state.GAME_OVER:
                     ...
@@ -174,6 +181,9 @@ while True:
 
         display.blit(cursor_sprite, (mx, my))
         display.blit(shop_text, (1920 / 2 - shop_text.width / 2, 1080 / 10 - shop_text.height / 2))
+
+        # draw lives still
+        draw_player_health(display, total_lives)
 
 
     if game_state == game_state.GAME:
