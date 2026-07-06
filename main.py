@@ -332,6 +332,9 @@ while True:
                 case game_state.MENU:
                     if event.key == pygame.K_RETURN:
                         game_state = game_state.GAME
+                case game_state.GAME_OVER | game_state.WIN:
+                    if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
+                        game_state = game_state.MENU
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             match game_state:
@@ -356,7 +359,7 @@ while True:
 
                     pygame.mixer.music.stop()
 
-                case game_state.GAME_OVER:
+                case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
 
     if game_state == game_state.MENU:
@@ -485,7 +488,6 @@ while True:
                                 GameState.WIN
 
     if game_state == game_state.GAME_OVER:
-        # TODO: do game over stuff
         display.fill((20, 20, 20))
         display.blit(
             game_over_text,
