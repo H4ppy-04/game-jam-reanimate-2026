@@ -52,7 +52,7 @@ def draw_player_health(surface):
 def draw_enemy_health(surface):
     # just a health bar
     health_bar_size = 150
-    pygame.draw.rect(surface, (200, 0, 0), pygame.rect.Rect(1920 - health_bar_size - 10, 10)
+    pygame.draw.rect(surface, (200, 0, 0), pygame.rect.Rect(1920 - health_bar_size - 10, 10, health_bar_size, 25))
 
 while True:
     for event in pygame.event.get():
@@ -79,6 +79,7 @@ while True:
 
         # draw Healthbar
         draw_player_health(display)
+        draw_enemy_health(display)
 
         # draw bar to have UI stuff blow it
         pygame.draw.rect(display, (20, 20, 20), pygame.rect.Rect(0, 1080 - 150, 1920, 20))
