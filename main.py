@@ -9,6 +9,8 @@ display = pygame.display.set_mode((1920, 1080))
 
 font = pygame.font.Font("./assets/Fonts/Kenney Pixel Square.ttf", 50)
 
+# health_sprite = pygame.image.load()
+
 
 
 class Dice:
@@ -19,6 +21,7 @@ class Dice:
 class GameState(enum.Enum):
     MENU = 0,
     GAME = 1
+    GAME_OVER = 2
 
 
 class Healthbar(pygame.sprite.Sprite):
@@ -83,5 +86,9 @@ while True:
 
         # draw bar to have UI stuff blow it
         pygame.draw.rect(display, (20, 20, 20), pygame.rect.Rect(0, 1080 - 150, 1920, 20))
+
+    if game_state == game_state.GAME_OVER:
+        # TODO: do game over stuff
+        pass
 
     pygame.display.update()
