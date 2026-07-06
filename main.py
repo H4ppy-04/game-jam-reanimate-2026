@@ -42,6 +42,12 @@ class Healthbar(pygame.sprite.Sprite):
     def draw(self, display):
         display.blit(self.image, self.rect)
 
+
+def draw_dialogue_box(surface, x, y):
+    pygame.draw.rect(surface, (255, 255, 255), pygame.rect.Rect(x, y, 450, 250), 0, 20)
+    pygame.draw.rect(surface, (20, 20, 20), pygame.rect.Rect(x, y, 450, 250), 10, 20)
+
+
 game_state = GameState.MENU
 
 play_text = font.render("PLAY GAME", True, (255, 255, 255))
@@ -103,6 +109,9 @@ while True:
 
         # draw bar to have UI stuff blow it
         pygame.draw.rect(display, (20, 20, 20), pygame.rect.Rect(0, 1080 - 150, 1920, 20))
+
+        # draw PLAYER dialogue box
+        draw_dialogue_box(display, 150, 1080 // 2)
 
     if game_state == game_state.GAME_OVER:
         # TODO: do game over stuff
