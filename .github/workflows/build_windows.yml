@@ -25,10 +25,13 @@ jobs:
 
       - name: Build exe
         run: |
-          pyinstaller --noconfirm --clean --onefile --windowed main.py --name RollTheBones
+          pyinstaller --noconfirm --clean --onefile --windowed `
+            --name RollTheBones `
+            --add-data "assets;assets" `
+            main.py
 
-      - name: Upload build artifact
+      - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mygame-windows
-          path: dist/rollthebones.exe
+          name: RollTheBones-windows
+          path: dist/RollTheBones.exe
