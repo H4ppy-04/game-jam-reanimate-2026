@@ -74,6 +74,8 @@ button_font = pygame.font.Font(
 )
 shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
+dialogue_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 18)
+
 # queue_sound(resource_path("assets/mainMenu.wav"))
 pygame.display.set_caption("Roll the Bones...")
 
@@ -548,13 +550,15 @@ enemy_dice = Dice(enemy=True)
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 
+player_reaction_text = dialogue_font.render("", True, (0, 0, 0))
+enemy_reaction_text = dialogue_font.render("", True, (0, 0, 0))
 
 def render_roll_text(roll) -> pygame.Surface:
     return font.render(f"I rolled a {roll}!", True, (0, 0, 0))
 
 
-def player_speak_text(text) -> pygame.Surface:
-    return font.render(text, True, (0, 0, 0))
+def player_speak_text(text, text_font=dialogue_font) -> pygame.Surface:
+    return text_font.render(text, True, (0, 0, 0))
 
 
 player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
@@ -722,11 +726,19 @@ while True:
         # draw PLAYER dialogue box
         draw_dialogue_box(display, 150, DISPLAY_HEIGHT // 2)
         display.blit(player_render_roll_text, (175, DISPLAY_HEIGHT // 2 + 20))
+        display.blit(
+            player_reaction_text, (175, DISPLAY_HEIGHT // 2 + 20 + player_reaction_text.height + 5
+                                   )
+        )
 
         # draw ENEMY dialogue box
         draw_dialogue_box(display, DISPLAY_WIDTH - 500, DISPLAY_HEIGHT // 10)
         display.blit(
             enemy_render_roll_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20)
+        )
+        display.blit(
+            enemy_reaction_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20 + enemy_render_roll_text.height + 5
+                                  )
         )
 
         # draw current roll objective
@@ -786,6 +798,7 @@ while True:
                                 ]
                             ):
                                 total_lives -= 1
+                                enemy_reaction_text = player_speak_text(get_dialogue("enemy_win"))
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
@@ -794,6 +807,7 @@ while True:
                                 # the player won
                                 coins += 1
                                 total_lives += 1
+                                enemy_reaction_text = player_speak_text(get_dialogue("enemy_lose"))
                                 if total_lives > 9:
                                     game_state = GameState.WIN
                                 # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
@@ -813,6 +827,7 @@ while True:
                                 ]
                             ):
                                 total_lives -= 1
+                                enemy_reaction_text = player_speak_text(get_dialogue("enemy_win"))
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
@@ -820,6 +835,7 @@ while True:
                             else:
                                 coins += 1
                                 total_lives += 1
+                                enemy_reaction_text = player_speak_text(get_dialogue("enemy_lose"))
                                 if total_lives > 9:
                                     game_state = GameState.WIN
 
