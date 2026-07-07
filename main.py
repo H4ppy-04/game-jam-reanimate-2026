@@ -256,6 +256,20 @@ store_items.add(
         DISPLAY_HEIGHT * 1 // 4 - 100,
         price=3,
     ),
+    StoreItem(
+        dice_image["red"]["1"],
+        "Low Roll",
+        DISPLAY_WIDTH * 4 // 7 + 200,
+        DISPLAY_HEIGHT * 1 // 4 - 100,
+        price=2,
+    ),
+    StoreItem(
+        dice_image["red"]["6"],
+        "High Roll",
+        DISPLAY_WIDTH * 4 // 7 + 300,
+        DISPLAY_HEIGHT * 1 // 4 - 100,
+        price=4,
+    ),
 )
 
 
@@ -309,6 +323,8 @@ class DieCategory(enum.Enum):
     FAIR = "Fair"
     EVEN_ONLY = "Even Only"
     ODD_ONLY = "Odd Only"
+    HIGH_ROLL = "High Roll"
+    LOW_ROLL = "Low Roll"
 
 
 class Die:
@@ -322,6 +338,8 @@ class Die:
         self.uses = 3
 
         self.category = category
+
+        self.selected = False
 
         self.caption = str(category.value)
         self.caption_render = shop_font.render(
@@ -354,11 +372,10 @@ class Dice:
     def __init__(self, enemy=False) -> None:
 
         # Player should start out with 2 dice
-        self.inventory = []
+        self.inventory: list[Die] = []
 
         self.roll_history = []
 
-        self.individual_dice = []
         self.throw_timer = 0
 
         self.in_center = False
@@ -384,8 +401,9 @@ class Dice:
             if not throwing:
                 die.rect.y = DISPLAY_HEIGHT - 100 if not self.enemy else 100
             else:
-                die.rect.y = DISPLAY_HEIGHT - 300 if not self.enemy else 300
-            interval += die.rect.width
+                if die.selected:
+                    die.rect.y = DISPLAY_HEIGHT - 300 if not self.enemy else 300
+            interval += die.rect.width + 30
 
     @staticmethod
     def add_random() -> Die:
@@ -394,7 +412,6 @@ class Dice:
     def draw(self, surface):
         for die in self.inventory:
             die.draw(surface)
-            # surface.blit(die.image, die.rect)
 
     def reset_position(self):
         self.x = self.orig_x
@@ -433,11 +450,11 @@ class Dice:
         self.roll_history.append(self.total())
 
     def total(self) -> int:
-        return sum([die.value for die in self.inventory])
+        return sum([die.value for die in self.inventory if die.selected])
 
 
 class GameState(enum.Enum):
-    MENU = (0,)
+    MENU = 0
     GAME = 1
     GAME_OVER = 2
     SHOP = 3
@@ -600,7 +617,6 @@ while True:
                             play_sound(buy_sound, sfx_channel, loops=0)
 
                             coins -= item.price
-                            player_dice.individual_dice.append(item)
 
                             match item.caption:
                                 case "Odd Only":
@@ -615,6 +631,18 @@ while True:
                                     player_dice.add_dice(
                                         number, color, DieCategory.EVEN_ONLY
                                     )
+                                case "High Roll":
+                                    number = random.choice([5, 6])
+                                    color = "white"
+                                    player_dice.add_dice(
+                                        number, color, DieCategory.HIGH_ROLL
+                                    )
+                                case "Low Roll":
+                                    number = random.choice([1, 2])
+                                    color = "red"
+                                    player_dice.add_dice(
+                                        number, color, DieCategory.LOW_ROLL
+                                    )
 
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
@@ -627,8 +655,6 @@ while True:
 
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
-
-                    # stop_sound(music_channel)
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
@@ -709,6 +735,12 @@ while True:
         # draw dice
         player_dice.draw(display)
         enemy_dice.draw(display)
+
+        for die in player_dice.inventory:
+            if die.selected:
+                pygame.draw.circle(
+                    display, pygame.Color("yellow"), die.rect.center, die.rect.width, 3
+                )
 
         # pygame.draw.rect(display, (255, 0, 0), player_dice.get_rect())
 
@@ -804,6 +836,14 @@ while True:
                             die.image = die.render_surface()
                         case DieCategory.ODD_ONLY:
                             die.value = random.choice([1, 3, 5])
+                            die.color = random.choice(["red", "white"])
+                            die.image = die.render_surface()
+                        case DieCategory.HIGH_ROLL:
+                            die.value = random.choice([5, 6])
+                            die.color = random.choice(["red", "white"])
+                            die.image = die.render_surface()
+                        case DieCategory.LOW_ROLL:
+                            die.value = random.choice([1, 2])
                             die.color = random.choice(["red", "white"])
                             die.image = die.render_surface()
 
