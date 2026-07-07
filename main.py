@@ -7,6 +7,8 @@ from pathlib import Path
 import pygame
 from loguru import logger
 
+from dialogue import get_dialogue
+
 pygame.init()
 
 
