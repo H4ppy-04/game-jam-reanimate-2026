@@ -48,6 +48,7 @@ DIALOGUE = {
     ],
 }
 
+
 def get_dialogue(event: str) -> str:
     lines = DIALOGUE.get(event)
     if not lines:
