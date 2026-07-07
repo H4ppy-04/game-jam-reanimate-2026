@@ -26,7 +26,7 @@ jobs:
         run: |
           pyinstaller --noconfirm --clean --onefile --windowed \
             --name RollTheBones \
-            --add-data "assets;assets" \
+            --add-data "assets:assets" \
             main.py
 
       - name: Upload artifact
