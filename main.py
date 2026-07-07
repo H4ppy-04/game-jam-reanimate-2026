@@ -1,9 +1,7 @@
 import enum
-import os
 import random
 import socket
 import sys
-from dataclasses import dataclass
 from pathlib import Path
 
 import pygame
@@ -171,6 +169,20 @@ dice_image = {
 }
 
 
+def reset_game():
+    global total_lives, coins, enemy_dice, player_dice
+    total_lives = 3
+    coins = 6
+    enemy_dice.inventory.clear()
+    player_dice.inventory.clear()
+
+    player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+    player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+
+    enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+    enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+
+
 class StoreItem(pygame.sprite.Sprite):
     def __init__(
         self, image: pygame.Surface, caption: str, x: int, y: int, price: int, *groups
@@ -269,8 +281,14 @@ class Button:
         display.blit(self.image, self.rect)
 
 
+class DieCategory(enum.Enum):
+    FAIR = 0
+    EVEN_ONLY = 1
+    ODD_ONLY = 2
+
+
 class Die:
-    def __init__(self, color, value):
+    def __init__(self, color, value, category=DieCategory.FAIR):
         self.color = color
         self.value = value
 
@@ -279,33 +297,51 @@ class Die:
 
         self.uses = 3
 
+        self.category = category
+
     def render_surface(self):
         return dice_image[self.color][str(self.value)]
 
 
 class Dice:
 
-    def __init__(self, x, y) -> None:
+    PLAYER_START_X = 450
+
+    def __init__(self, enemy=False) -> None:
 
         # Player should start out with 2 dice
-        self.inventory = [
-            Die(random.choice(["red", "white"]), random.randint(1, 6)),
-            Die(random.choice(["red", "white"]), random.randint(1, 6)),
-        ]
+        self.inventory = []
 
         self.roll_history = []
-        # self.roll()
 
         self.individual_dice = []
         self.throw_timer = 0
 
         self.in_center = False
 
-        self.orig_x = x
-        self.orig_y = y
+        if enemy:
+            self.x = DISPLAY_WIDTH / 2 - 68
+            self.y = 100
 
-        self.x = x
-        self.y = y
+        else:
+            self.x = Dice.PLAYER_START_X
+            self.y = DISPLAY_HEIGHT - 100
+
+        self.orig_x = self.x
+        self.orig_y = self.y
+
+        self.enemy = enemy
+
+    def position_die(self, throwing=False):
+        interval = 0
+        start_x = Dice.PLAYER_START_X
+        for die in self.inventory:
+            die.rect.x = start_x + interval
+            if not throwing:
+                die.rect.y = DISPLAY_HEIGHT - 100 if not self.enemy else 100
+            else:
+                die.rect.y = DISPLAY_HEIGHT - 300 if not self.enemy else 300
+            interval += die.rect.width
 
     @staticmethod
     def add_random() -> Die:
@@ -318,30 +354,38 @@ class Dice:
     def reset_position(self):
         self.x = self.orig_x
         self.y = self.orig_y
+        self.in_center = False
 
     def get_rect(self):
-        return pygame.rect.Rect(self.x, self.y, self.get_size()[0], self.get_size()[1])
+        return pygame.rect.Rect(self.x, self.y, len(self.inventory) * 68, 68)
 
     def update(self):
+        self.position_die(self.in_center)
         if self.in_center:
             self.throw_timer += 1
             if self.throw_timer > 250:
                 self.reset_position()
+                self.throw_timer = 0
 
-    def add_dice(self, number: int, color: str):
-        self.inventory.append(Die(color, number))
+    def add_dice(self, number: int, color: str, category: DieCategory):
+        self.inventory.append(Die(color, number, category))
+        self.position_die()
+        for die in self.inventory:
+            die.image = die.render_surface()
 
     def get_size(self):
         return [sum([die.rect.width for die in self.inventory]), 68]
 
-    def throw(self, enemy=False):
+    def throw(self):
         """throw dice into screen"""
-        # self.roll()
+        self.in_center = True
+
         self.x = DISPLAY_HEIGHT / 2 - self.get_size()[0] / 2
         self.y = DISPLAY_HEIGHT - 300
 
-        if enemy:
+        if self.enemy:
             self.y = 300
+        self.roll_history.append(self.total())
 
     def total(self) -> int:
         return sum([die.value for die in self.inventory])
@@ -391,11 +435,6 @@ coins = 6
 pygame.mouse.set_visible(False)
 
 player_healthbar = Healthbar(10, 10)
-end_turn_button = Button(
-    DISPLAY_WIDTH - (button_sprite_size.width + 30),
-    DISPLAY_HEIGHT - (button_sprite_size.height + 200),
-    "End Turn",
-)
 shop_button = Button(30, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Shop")
 shop_goback_button = ButtonSmall(
     DISPLAY_WIDTH - 200, DISPLAY_HEIGHT / 2 - button_small_sprite_size.height, "Back"
@@ -427,8 +466,8 @@ def draw_enemy_health(surface):
 
 total_lives = 3
 
-player_dice = Dice(DISPLAY_WIDTH // 2 - 136 / 2, 68 - 100)
-enemy_dice = Dice(DISPLAY_WIDTH // 2 - 136 / 2, 100)
+player_dice = Dice()
+enemy_dice = Dice(enemy=True)
 
 # begin playing menu music before anything
 play_sound(loops=-1)
@@ -445,13 +484,14 @@ def player_speak_text(text) -> pygame.Surface:
     return font.render(text, True, (0, 0, 0))
 
 
+player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+
+enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+
 enemy_roll_timer = 0
 start_enemy_timer = False
-
-
-def add_coin_animation(surface: pygame.Surface):
-    """TODO: [POLISH] add coin animation from bottom of screen."""
-    pass
 
 
 while True:
@@ -461,6 +501,7 @@ while True:
             sys.exit()
 
         if event.type == pygame.MOUSEMOTION:
+            logger.debug((mx, my))
             mx, my = pygame.mouse.get_pos()
             match game_state:
                 case game_state.SHOP:
@@ -498,17 +539,19 @@ while True:
                                 case "Odd Only":
                                     number = random.choice([1, 3, 5])
                                     color = "red"
-                                    player_dice.add_dice(number, color)
+                                    player_dice.add_dice(number, color, DieCategory.ODD_ONLY)
                                 case "Even Only":
                                     number = random.choice([2, 4, 6])
                                     color = "white"
-                                    player_dice.add_dice(number, color)
+                                    player_dice.add_dice(number, color, DieCategory.EVEN_ONLY)
 
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
 
+                    print(player_dice.get_rect())
                     if player_dice.get_rect().collidepoint(mx, my):
+                        logger.debug("throwing die")
                         player_dice.throw()
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
@@ -615,20 +658,25 @@ while True:
         player_dice.draw(display)
         enemy_dice.draw(display)
 
+        # pygame.draw.rect(display, (255, 0, 0), player_dice.get_rect())
+
         player_dice.update()
         enemy_dice.update()
 
-        # draw end turn button
-        end_turn_button.draw(display)
         shop_button.draw(display)
 
         if start_enemy_timer:
             enemy_roll_timer += 1
             if enemy_roll_timer > 250:
-                enemy_dice.throw(enemy=True)
+                enemy_dice.throw()
                 start_enemy_timer = False
                 enemy_roll_timer = 0
                 enemy_render_roll_text = render_roll_text(enemy_dice.total())
+
+                enemy_dice.inventory.clear()
+                enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+                enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+
                 match current_objective:
                     case Objective.ROLL_HIGHEST_NUM:
                         if (
@@ -667,10 +715,26 @@ while True:
                             coins += 1
                             total_lives += 1
                             if total_lives > 9:
-                                GameState.WIN
+                                game_state = GameState.WIN
+
+                for die in player_dice.inventory:
+                    print("randomizing die")
+                    match die.category:
+                        case DieCategory.FAIR:
+                            die.value = random.randint(1, 6)
+                            die.color = random.choice(["red", "white"])
+                            die.image = die.render_surface()
+                        case DieCategory.EVEN_ONLY:
+                            die.value = random.choice([2, 4, 6])
+                            die.color = random.choice(["red", "white"])
+                            die.image = die.render_surface()
+                        case DieCategory.ODD_ONLY:
+                            die.value = random.choice([1, 3, 5])
+                            die.color = random.choice(["red", "white"])
+                            die.image = die.render_surface()
 
     if game_state == game_state.GAME_OVER:
-        display.fill((20, 20, 20))
+        reset_game()
         display.blit(
             game_over_text,
             (
@@ -680,6 +744,7 @@ while True:
         )
 
     if game_state == game_state.WIN:
+        reset_game()
         display.fill((20, 255, 30))
         display.blit(
             game_win_text,
