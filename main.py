@@ -1,6 +1,9 @@
 import enum
+import os
 import random
+import socket
 import sys
+from dataclasses import dataclass
 from pathlib import Path
 
 import pygame
@@ -12,6 +15,11 @@ pygame.init()
 screen_info = pygame.display.Info()
 DISPLAY_WIDTH = screen_info.current_w
 DISPLAY_HEIGHT = screen_info.current_h
+
+
+if socket.gethostname() == "fedora":
+    DISPLAY_WIDTH = 1920
+    DISPLAY_HEIGHT = 1080
 
 
 def resource_path(relative_path: str) -> Path:
@@ -52,7 +60,9 @@ purchased_dice = []
 
 display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
 
-# shop_background = pygame.transform.scale_by(pygame.image.load(resource_path())
+shop_background = pygame.transform.scale_by(
+    pygame.image.load(resource_path("assets/shopkeeper.png")), 9.5
+)
 font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 50)
 button_font = pygame.font.Font(
     resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 34
@@ -259,87 +269,82 @@ class Button:
         display.blit(self.image, self.rect)
 
 
+class Die:
+    def __init__(self, color, value):
+        self.color = color
+        self.value = value
+
+        self.image = pygame.Surface((68, 68), pygame.SRCALPHA)
+        self.rect = self.image.get_rect()
+
+        self.uses = 3
+
+    def render_surface(self):
+        return dice_image[self.color][str(self.value)]
+
+
 class Dice:
-    SIZE = 156, 68
 
     def __init__(self, x, y) -> None:
-        self.image = pygame.Surface((Dice.SIZE[0], Dice.SIZE[1]), pygame.SRCALPHA)
+
+        # Player should start out with 2 dice
+        self.inventory = [
+            Die(random.choice(["red", "white"]), random.randint(1, 6)),
+            Die(random.choice(["red", "white"]), random.randint(1, 6)),
+        ]
 
         self.roll_history = []
         # self.roll()
 
         self.individual_dice = []
-
-        self.rect = self.image.get_rect()
-        # self.rect.x = DISPLAY_WIDTH // 2 - self.rect.width / 2
-        # self.rect.y = DISPLAY_HEIGHT - 100
-        self.rect.x = x
-        self.rect.y = y
-
-        self.origin = x, y
-
         self.throw_timer = 0
 
-        self.uses = 3
+        self.in_center = False
 
-    def reset_position(self):
-        self.rect.x = self.origin[0]
-        self.rect.y = self.origin[1]
+        self.orig_x = x
+        self.orig_y = y
+
+        self.x = x
+        self.y = y
+
+    @staticmethod
+    def add_random() -> Die:
+        return Die(random.choice(["red", "white"]), random.randint(1, 6))
 
     def draw(self, surface):
-        surface.blit(self.image, self.rect)
+        for die in self.inventory:
+            surface.blit(die.image, die.rect)
+
+    def reset_position(self):
+        self.x = self.orig_x
+        self.y = self.orig_y
+
+    def get_rect(self):
+        return pygame.rect.Rect(self.x, self.y, self.get_size()[0], self.get_size()[1])
 
     def update(self):
-        if self.rect.y != self.origin[1]:
+        if self.in_center:
             self.throw_timer += 1
             if self.throw_timer > 250:
-                self.rect.x = self.origin[0]
-                self.rect.y = self.origin[1]
-                self.throw_timer = 0
+                self.reset_position()
 
     def add_dice(self, number: int, color: str):
-        logger.debug(f"adding individual dice {dice_image[color][str(number)]}")
-        self.individual_dice.append(dice_image[color][str(number)])
-        if color == "red":
-            self.index_red = str(number)
-        match len(self.individual_dice):
-            case 1:
-                self.image.blit(self.individual_dice[0].image, (0, 0))
-            case 2:
-                self.image.blit(self.individual_dice[0].image, (0, 0))
-                self.image.blit(
-                    self.individual_dice[1],
-                    (self.individual_dice[0].rect.width + 5, 0),
-                )
+        self.inventory.append(Die(color, number))
 
-    def roll(self):
-        self.index_red = random.choice([i for i in dice_image["red"]])
-        self.index_white = random.choice([i for i in dice_image["white"]])
-
-        self.red_die = dice_image["red"][self.index_red]
-        self.red_die.set_colorkey((0, 0, 0))
-        self.white_die = dice_image["white"][self.index_white]
-        self.white_die.set_colorkey((0, 0, 0))
-
-        self.image.blit(self.red_die, (0, 0))
-        self.image.blit(self.white_die, (self.red_die.get_rect().width + 5, 0))
-
-        self.roll_history.append(self.total())
+    def get_size(self):
+        return [sum([die.rect.width for die in self.inventory]), 68]
 
     def throw(self, enemy=False):
         """throw dice into screen"""
         # self.roll()
-        self.rect.x = DISPLAY_WIDTH / 2 - self.rect.width / 2
-        self.rect.y = DISPLAY_HEIGHT - 300
+        self.x = DISPLAY_HEIGHT / 2 - self.get_size()[0] / 2
+        self.y = DISPLAY_HEIGHT - 300
 
         if enemy:
-            self.rect.x = DISPLAY_WIDTH / 2 - self.rect.width / 2
-            self.rect.y = 300
+            self.y = 300
 
     def total(self) -> int:
-        _total = int(self.index_red) + int(self.index_white)
-        logger.debug(f"total dice value: {_total}")
-        return _total
+        return sum([die.value for die in self.inventory])
 
 
 class GameState(enum.Enum):
@@ -422,8 +427,8 @@ def draw_enemy_health(surface):
 
 total_lives = 3
 
-player_dice = Dice(DISPLAY_WIDTH // 2 - Dice.SIZE[0] / 2, DISPLAY_HEIGHT - 100)
-enemy_dice = Dice(DISPLAY_WIDTH // 2 - Dice.SIZE[0] / 2, 100)
+player_dice = Dice(DISPLAY_WIDTH // 2 - 136 / 2, 68 - 100)
+enemy_dice = Dice(DISPLAY_WIDTH // 2 - 136 / 2, 100)
 
 # begin playing menu music before anything
 play_sound(loops=-1)
@@ -485,26 +490,25 @@ while True:
 
                     for item in store_items:
                         if item.rect.collidepoint(mx, my) and coins >= item.price:
-                            if len(player_dice.individual_dice) < 2:
-                                logger.info(f"Bought store item for ${item.price}")
-                                coins -= item.price
-                                player_dice.individual_dice.append(item)
-                                # TODO: some sort of indication that the dice has been purchased
-                                match item.caption:
-                                    case "Odd Only":
-                                        number = random.choice([1, 3, 5])
-                                        color = "red"
-                                        player_dice.add_dice(number, color)
-                                    case "Even Only":
-                                        number = random.choice([2, 4, 6])
-                                        color = "white"
-                                        player_dice.add_dice(number, color)
+                            logger.info(f"Bought store item for ${item.price}")
+                            coins -= item.price
+                            player_dice.individual_dice.append(item)
+                            # TODO: some sort of indication that the dice has been purchased
+                            match item.caption:
+                                case "Odd Only":
+                                    number = random.choice([1, 3, 5])
+                                    color = "red"
+                                    player_dice.add_dice(number, color)
+                                case "Even Only":
+                                    number = random.choice([2, 4, 6])
+                                    color = "white"
+                                    player_dice.add_dice(number, color)
 
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
 
-                    if player_dice.rect.collidepoint(mx, my):
+                    if player_dice.get_rect().collidepoint(mx, my):
                         player_dice.throw()
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
@@ -529,9 +533,8 @@ while True:
         # buy power ups
         # choose dice
 
-        # TODO: draw background as png
-
-        display.fill((50, 50, 50))
+        # display.fill((50, 50, 50))
+        display.blit(shop_background, (0, 0))
 
         display.blit(cursor_sprite, (mx, my))
         display.blit(
@@ -571,7 +574,9 @@ while True:
         pygame.draw.rect(
             display,
             (10, 10, 10),
-            pygame.rect.Rect(DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, 25, 1080 / 2),
+            pygame.rect.Rect(
+                DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, 25, DISPLAY_HEIGHT / 2
+            ),
         )
 
         for item in store_items:
@@ -620,7 +625,6 @@ while True:
         if start_enemy_timer:
             enemy_roll_timer += 1
             if enemy_roll_timer > 250:
-                enemy_dice.roll()
                 enemy_dice.throw(enemy=True)
                 start_enemy_timer = False
                 enemy_roll_timer = 0
