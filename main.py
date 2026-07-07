@@ -61,6 +61,46 @@ def stop_sound(channel: pygame.mixer.Channel):
         logger.warning(f"Failed to stop sound")
 
 
+def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[str]:
+    words = text.split(" ")
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        if text_font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    return lines
+
+
+def render_wrapped_text(
+        text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
+) -> pygame.Surface:
+    lines = wrap_text(text, text_font, max_width)
+    line_surfaces = [text_font.render(line, True, color) for line in lines]
+
+    total_height = sum(s.height for s in line_surfaces) + line_spacing * (
+        len(line_surfaces) - 1
+    )
+    width = max(s.width for s in line_surfaces)
+
+    wrapped_surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
+
+    y = 0
+    for surface in line_surfaces:
+        wrapped_surface.blit(surface, (0, y))
+        y += surface.height + line_spacing
+
+    return wrapped_surface
+
+
 music_channel = pygame.mixer.Channel(0)
 sfx_channel = pygame.mixer.Channel(1)
 
@@ -831,6 +871,8 @@ while True:
                                 ]
                             ):
                                 total_lives -= 1
+                                enemy_reaction_text = render_wrapped_text(get_dialogue("enemy_win"), button_font, (0, 0, 0), 400)
+                                display.blit(enemy_reaction_text, (175, DISPLAY_HEIGHT // 2))
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
