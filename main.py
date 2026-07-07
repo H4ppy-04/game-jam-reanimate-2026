@@ -117,6 +117,8 @@ button_font = pygame.font.Font(
 )
 shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
+dialogue_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 18)
+
 # queue_sound(resource_path("assets/mainMenu.wav"))
 pygame.display.set_caption("Roll the Bones... | Main Menu")
 
@@ -632,6 +634,10 @@ enemy_dice = Dice(enemy=True)
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 
+player_reaction_text = dialogue_font.render("", True, (0, 0, 0))
+enemy_reaction_text = dialogue_font.render("", True, (0, 0, 0))
+
+shopkeeper_text = shop_font.render("", True, (0, 0, 0))
 main_menu_timer = 0
 main_menu_timer_max = 3
 
@@ -640,9 +646,44 @@ def render_roll_text(roll) -> pygame.Surface:
     return font.render(f"I rolled a {roll}!", True, (0, 0, 0))
 
 
-def player_speak_text(text) -> pygame.Surface:
-    return font.render(text, True, (0, 0, 0))
+def player_speak_text(text, text_font=dialogue_font) -> pygame.Surface:
+    return text_font.render(text, True, (0, 0, 0))
 
+def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[str]:
+    words = text.split(" ")
+    lines = []
+    current_line = ""
+
+    for word in words:
+        test_line = f"{current_line} {word}".strip()
+        if text_font.size(test_line)[0] <= max_width:
+            current_line = test_line
+        else:
+            lines.append(current_line)
+            current_line = word
+
+    if current_line:
+        lines.append(current_line)
+
+    return lines
+
+def render_wrapped_text(
+    text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
+) -> pygame.Surface:
+    lines = wrap_text(text, text_font, max_width)
+    line_surfaces = [text_font.render(line, True, color) for line in lines]
+
+    total_height = sum(s.height for s in line_surfaces) + line_spacing * (len(line_surfaces) - 1)
+    width = max(s.width for s in line_surfaces)
+
+    wrapped_surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
+
+    y = 0
+    for surface in line_surfaces:
+        wrapped_surface.blit(surface, (0, y))
+        y += surface.height + line_spacing
+
+    return wrapped_surface
 
 player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
 player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
@@ -719,11 +760,17 @@ while True:
                                     player_dice.add_dice(
                                         number, color, DieCategory.ODD_ONLY, uses=3
                                     )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_odd_purchase"), shop_font, (0, 0, 0), 400
+                                    )
                                 case "Even Only":
                                     number = random.choice([2, 4, 6])
                                     color = "white"
                                     player_dice.add_dice(
                                         number, color, DieCategory.EVEN_ONLY, uses=3
+                                    )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_even_purchase"), shop_font, (0, 0, 0), 400
                                     )
                                 case "High Roll":
                                     number = random.choice([5, 6])
@@ -731,11 +778,17 @@ while True:
                                     player_dice.add_dice(
                                         number, color, DieCategory.HIGH_ROLL, uses=3
                                     )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_highroll_purchase"), shop_font, (0, 0, 0), 400
+                                    )
                                 case "Low Roll":
                                     number = random.choice([1, 2])
                                     color = "red"
                                     player_dice.add_dice(
                                         number, color, DieCategory.LOW_ROLL, uses=3
+                                    )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_lowroll_purchase"), shop_font, (0, 0, 0), 400
                                     )
 
                 case game_state.GAME:
@@ -795,6 +848,14 @@ while True:
 
         display.blit(shop_background, (0, 0))
 
+        # draw dialogue box, right below the shopkeeper's mouth
+        draw_dialogue_box(display, DISPLAY_WIDTH * 2 / 7 + 40, DISPLAY_HEIGHT * 2 / 5 - 20)
+        display.blit(
+            shopkeeper_text, (
+                DISPLAY_WIDTH * 2 / 7 + 60, DISPLAY_HEIGHT * 2 / 5
+            )
+        )
+
         display.blit(cursor_sprite, (mx, my))
         display.blit(
             shop_text,
@@ -837,6 +898,10 @@ while True:
         # draw PLAYER dialogue box
         draw_dialogue_box(display, 150, DISPLAY_HEIGHT // 2)
         display.blit(player_render_roll_text, (175, DISPLAY_HEIGHT // 2 + 20))
+        display.blit(
+            player_reaction_text, (175, DISPLAY_HEIGHT // 2 + 20 + player_reaction_text.height + 5
+                                   )
+        )
 
         # draw ENEMY dialogue box
         draw_dialogue_box(
@@ -844,6 +909,10 @@ while True:
         )
         display.blit(
             enemy_render_roll_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 90)
+        )
+        display.blit(
+            enemy_reaction_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20 + enemy_render_roll_text.height + 5
+                                  )
         )
 
         # draw current roll objective
@@ -934,6 +1003,9 @@ while True:
                                 # the player won
                                 coins += 1
                                 total_lives += 1
+                                enemy_reaction_text = render_wrapped_text(
+                                    get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
+                                )
                                 if total_lives > 9:
                                     game_state = GameState.WIN
                                     pygame.display.set_caption(
@@ -968,6 +1040,9 @@ while True:
                                 ]
                             ):
                                 total_lives -= 1
+                                enemy_reaction_text = render_wrapped_text(
+                                    get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400
+                                )
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
@@ -978,6 +1053,9 @@ while True:
                             else:
                                 coins += 1
                                 total_lives += 1
+                                enemy_reaction_text = render_wrapped_text(
+                                    get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
+                                )
                                 if total_lives > 9:
                                     game_state = GameState.WIN
                                     pygame.display.set_caption(

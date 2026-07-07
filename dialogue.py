@@ -38,14 +38,44 @@ DIALOGUE = {
         "The underworld bows to your roll",
         "You scratch destiny... and it yields",
         "Your victory burns hotter than Ra",
-        "Your lick strikes like a serpent",
+        "Your luck strikes like a serpent",
         "I taste defeat... bitter as desert dust",
         "Your roll... it stings",
         "Your luck strikes like a serpent",
     ],
-    "shop_keeper": [
-        # TODO
+    "shopkeeper_entry": [
+        "Welcome to my shop.",
+        "Please, browse my wares.",
+        "I'll help give you an edge in battle!",
+        "I hope you've got money!",
+        "Look at what the ca-... Oh! You are a cat!",
+        "I hope you aren't a cat burglar!",
+        "I don't accept hairballs as payment.",
     ],
+    "shopkeeper_odd_purchase": [
+        "1, 3, 5. That's... odd.",
+        "This die rolls with a twist!",
+        "Roll responsibly!",
+        "May the odds be in your favour.",
+    ],
+    "shopkeeper_even_purchase": [
+        "2, 4, 6. A pattern!",
+        "This die gives you an EVEN advantage.",
+        "Even the playing field!",
+        "May the odds even out!",
+    ],
+    "shopkeeper_lowroll_purchase": [
+        "Give them a low-blow!",
+        "1, 2 or 3, don't bet high!",
+    ],
+    "shopkeeper_highroll_purchase": [
+        "4, 5 or 6, how interesting!",
+        "Become a high roller!",
+        "Bet your best!",
+    ],
+    "shopkeeper_no_money": [
+        # TODO
+    ]
 }
 
 
