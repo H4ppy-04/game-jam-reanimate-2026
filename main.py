@@ -118,13 +118,20 @@ button_font = pygame.font.Font(
 shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
 # queue_sound(resource_path("assets/mainMenu.wav"))
-pygame.display.set_caption("Roll the Bones...")
+pygame.display.set_caption("Roll the Bones... | Main Menu")
 
 green_health_sprite = pygame.transform.scale2x(
-    pygame.image.load(resource_path("assets/lifeCellGreen.png"))
+    pygame.image.load(resource_path("assets/lifeCellOn.png"))
 )
 red_health_sprite = pygame.transform.scale2x(
-    pygame.image.load(resource_path("assets/lifeCellRed.png"))
+    pygame.image.load(resource_path("assets/lifeCellOff.png"))
+)
+
+round_cell_off = pygame.transform.scale2x(
+    pygame.image.load(resource_path("assets/roundCellOff.png"))
+)
+round_cell_on = pygame.transform.scale2x(
+    pygame.image.load(resource_path("assets/roundCellOn.png"))
 )
 
 game_background = pygame.image.load(resource_path("assets/playingMat.png"))
@@ -142,6 +149,9 @@ button_small_sprite_size = (
 
 health_sprite_width = 10
 health_sprite_height = 30
+
+round_sprite_width = 40
+round_sprite_height = 60
 
 cursor_sprite = pygame.transform.scale2x(
     pygame.image.load(
@@ -185,7 +195,9 @@ current_objective = get_random_objective()
 
 
 def draw_objective(surface: pygame.Surface, objective: Objective):
-    text = button_font.render(f"Objective: {objective.value}", True, (220, 220, 220))
+    text = button_font.render(
+        f"Objective: {objective.value}", True, (220, 220, 220), (20, 20, 20)
+    )
     surface.blit(text, (DISPLAY_WIDTH / 2 - text.width / 2, 10))
 
 
@@ -233,9 +245,14 @@ dice_image = {
 }
 
 
+enemy_rounds_won = 0
+player_rounds_won = 0
+
 def reset_game():
-    global total_lives, coins, enemy_dice, player_dice, current_round
+    global total_lives, coins, enemy_dice, player_dice, current_round, player_rounds_won, enemy_rounds_won
     total_lives = 3
+    player_rounds_won = 0
+    enemy_rounds_won = 0
     current_round = 0
     coins = 6
     enemy_dice.inventory.clear()
@@ -371,14 +388,14 @@ class DieCategory(enum.Enum):
 
 
 class Die:
-    def __init__(self, color, value, category=DieCategory.FAIR):
+    def __init__(self, color, value, category=DieCategory.FAIR, uses=None):
         self.color = color
         self.value = value
 
         self.image = pygame.Surface((68, 68), pygame.SRCALPHA)
         self.rect = self.image.get_rect()
 
-        self.uses = 3
+        self.uses = uses
 
         self.category = category
 
@@ -390,16 +407,17 @@ class Die:
         )
         self.hovering = False
 
-        self.uses_render = pygame.Surface((40, 40))
-        pygame.draw.circle(
-            self.uses_render,
-            (255, 0, 255),
-            (self.rect.width - 10, self.rect.height - 10),
-            15,
-        )
-        self.uses_font = pygame.font.Font(
-            resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 22
-        )
+        if isinstance(uses, int):
+            self.uses_render = pygame.Surface((40, 40))
+            pygame.draw.circle(
+                self.uses_render,
+                (255, 0, 255),
+                (self.rect.width - 10, self.rect.height - 10),
+                15,
+            )
+            self.uses_font = pygame.font.Font(
+                resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 22
+            )
 
     def render_surface(self):
         return dice_image[self.color][str(self.value)]
@@ -409,10 +427,11 @@ class Die:
         self.caption_render = shop_font.render(
             self.caption, True, (255, 255, 255), (20, 20, 20)
         )
-        surface.blit(
-            self.uses_font.render(str(self.uses), True, (200, 0, 200)),
-            (self.rect.bottomright),
-        )
+        if isinstance(self.uses, int):
+            surface.blit(
+                self.uses_font.render(str(self.uses), True, (200, 0, 200)),
+                (self.rect.bottomright),
+            )
         if self.hovering:
             surface.blit(
                 self.caption_render,
@@ -492,8 +511,8 @@ class Dice:
                     if die.selected:
                         die.selected = False
 
-    def add_dice(self, number: int, color: str, category: DieCategory):
-        self.inventory.append(Die(color, number, category))
+    def add_dice(self, number: int, color: str, category: DieCategory, uses=None):
+        self.inventory.append(Die(color, number, category, uses))
         self.position_die()
         for die in self.inventory:
             die.image = die.render_surface()
@@ -595,6 +614,15 @@ def draw_player_health(surface: pygame.Surface, total_lives):
         index += 1
 
 
+def draw_round_number(surface: pygame.Surface, current_round: int):
+    for index in range(3):
+        x = DISPLAY_WIDTH - 60 - (index * 40)
+        if index < current_round:
+            surface.blit(round_cell_on, (x, 20))
+        else:
+            surface.blit(round_cell_off, (x, 20))
+
+
 total_lives = 3
 
 player_dice = Dice()
@@ -627,6 +655,7 @@ for die in enemy_dice.inventory:
 enemy_roll_timer = 0
 start_enemy_timer = False
 
+
 play_sound(pygame.Sound(resource_path("assets/mainMenu.wav")), music_channel)
 
 while True:
@@ -650,11 +679,13 @@ while True:
             match game_state:
                 case game_state.MENU:
                     if event.key == pygame.K_RETURN:
+                        pygame.display.set_caption("Roll the Bones...")
                         game_state = game_state.GAME
                         play_sound(transition_sound, sfx_channel, 0.5, 0)
                 case game_state.GAME_OVER | game_state.WIN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         game_state = game_state.MENU
+                        pygame.display.set_caption("Roll the Bones... | Main Menu")
                         play_sound(transition_sound, sfx_channel, 0.5, 0)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
@@ -662,6 +693,7 @@ while True:
                 case game_state.MENU:
                     play_sound(transition_sound, sfx_channel, 0.5, 0)
                     game_state = game_state.GAME
+                    pygame.display.set_caption("Roll the Bones...")
                     stop_sound(music_channel)
                     play_sound(
                         pygame.Sound(resource_path("assets/gambling.wav")),
@@ -671,6 +703,7 @@ while True:
                 case game_state.SHOP:
                     if shop_goback_button.rect.collidepoint(mx, my):
                         game_state = game_state.GAME
+                        pygame.display.set_caption("Roll the Bones...")
 
                     for item in store_items:
                         if item.rect.collidepoint(mx, my) and coins >= item.price:
@@ -684,25 +717,25 @@ while True:
                                     number = random.choice([1, 3, 5])
                                     color = "red"
                                     player_dice.add_dice(
-                                        number, color, DieCategory.ODD_ONLY
+                                        number, color, DieCategory.ODD_ONLY, uses=3
                                     )
                                 case "Even Only":
                                     number = random.choice([2, 4, 6])
                                     color = "white"
                                     player_dice.add_dice(
-                                        number, color, DieCategory.EVEN_ONLY
+                                        number, color, DieCategory.EVEN_ONLY, uses=3
                                     )
                                 case "High Roll":
                                     number = random.choice([5, 6])
                                     color = "white"
                                     player_dice.add_dice(
-                                        number, color, DieCategory.HIGH_ROLL
+                                        number, color, DieCategory.HIGH_ROLL, uses=3
                                     )
                                 case "Low Roll":
                                     number = random.choice([1, 2])
                                     color = "red"
                                     player_dice.add_dice(
-                                        number, color, DieCategory.LOW_ROLL
+                                        number, color, DieCategory.LOW_ROLL, uses=3
                                     )
 
                 case game_state.GAME:
@@ -710,6 +743,7 @@ while True:
                         game_state = game_state.SHOP
                         stop_sound(music_channel)
                         play_sound(shop_sound, music_channel)
+                        pygame.display.set_caption("Roll the Bones... | Shop")
                     selected = [i for i in player_dice.inventory if i.selected]
                     for die in player_dice.inventory:
                         if die.rect.collidepoint(mx, my):
@@ -733,6 +767,7 @@ while True:
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
+                    pygame.display.set_caption("Roll the Bones... | Menu")
 
     if game_state == game_state.MENU:
         if main_menu_timer < 4:
@@ -795,6 +830,7 @@ while True:
 
         # draw Healthbar
         draw_player_health(display, total_lives)
+        draw_round_number(display, current_round)
 
         display.blit(tile_sprite_long, (0, DISPLAY_HEIGHT - 200))
 
@@ -858,6 +894,15 @@ while True:
                         if current_round < 3:
                             current_round += 1
                             round_num_text = render_round_num_text(current_round)
+                            if (
+                                enemy_dice.total()
+                                > player_dice.roll_history[
+                                    len(player_dice.roll_history) - 1
+                                ]
+                                ):
+                                player_rounds_won += 1
+                            else:
+                                enemy_rounds_won += 1
                         else:
                             current_round = 1
                             round_num_text = render_round_num_text(current_round)
@@ -882,12 +927,18 @@ while True:
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
                                     game_state = GameState.GAME_OVER
+                                    pygame.display.set_caption(
+                                        "Roll the Bones... | Game Over"
+                                    )
                             else:
                                 # the player won
                                 coins += 1
                                 total_lives += 1
                                 if total_lives > 9:
                                     game_state = GameState.WIN
+                                    pygame.display.set_caption(
+                                        "Roll the Bones... | You Won!"
+                                    )
                                 # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I lost!?"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
 
@@ -895,8 +946,20 @@ while True:
                         if current_round < 3:
                             current_round += 1
                             round_num_text = render_round_num_text(current_round)
+                            if (
+                                enemy_dice.total()
+                                < player_dice.roll_history[
+                                    len(player_dice.roll_history) - 1
+                                ]
+                                ):
+                                player_rounds_won += 1
+                            else:
+                                enemy_rounds_won += 1
+
                         else:
                             current_round = 1
+                            player_rounds_won = 0
+                            enemy_rounds_won = 0
                             round_num_text = render_round_num_text(current_round)
                             if (
                                 enemy_dice.total()
@@ -909,11 +972,17 @@ while True:
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
                                     game_state = GameState.GAME_OVER
+                                    pygame.display.set_caption(
+                                        "Roll the Bones... | Game Over"
+                                    )
                             else:
                                 coins += 1
                                 total_lives += 1
                                 if total_lives > 9:
                                     game_state = GameState.WIN
+                                    pygame.display.set_caption(
+                                        "Roll the Bones... | You Won!"
+                                    )
 
                 for die in player_dice.inventory:
                     # print("randomizing die")
@@ -938,6 +1007,11 @@ while True:
                             die.value = random.choice([1, 2])
                             die.color = random.choice(["red", "white"])
                             die.image = die.render_surface()
+                    if isinstance(die.uses, int):
+                        if die.uses == 1:
+                            player_dice.inventory.remove(die)
+                        else:
+                            die.uses -= 1
 
     if game_state == game_state.GAME_OVER:
         reset_game()
