@@ -25,7 +25,6 @@ jobs:
       - name: Build executable
         run: |
           pyinstaller --noconfirm --clean --onefile --windowed `
-            --name RollTheBones `
             --add-data "assets;assets" `
             main.py
 
