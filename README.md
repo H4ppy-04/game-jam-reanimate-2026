@@ -1,6 +1,8 @@
 # Game Jam: ReAnimate
 
 [![build-windows](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_windows.yml/badge.svg)](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_windows.yml)
+[![build-linux](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_linux.yml/badge.svg)](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_linux.yml)
+[![build-macos](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_mac.yml/badge.svg)](https://github.com/H4ppy-04/game-jam-reanimate-2026/actions/workflows/build_mac.yml)
 
 ## Overview
 
