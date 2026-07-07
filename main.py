@@ -1,5 +1,4 @@
 import enum
-from os import wait
 import random
 import socket
 import sys
@@ -116,7 +115,9 @@ roll_sfx = [
     pygame.mixer.Sound(resource_path(f"assets/diceRoll{i}.wav")) for i in range(1, 3)
 ]
 queue_sound(pygame.Sound(resource_path("assets/gambling.wav")), music_channel)
+
 transition_sound = pygame.mixer.Sound(resource_path("assets/transition.wav"))
+buy_sound = pygame.mixer.Sound(resource_path("assets/buyItem.mp3"))
 
 
 class Objective(enum.Enum):
@@ -210,13 +211,13 @@ class StoreItem(pygame.sprite.Sprite):
         super().__init__(*groups)
 
         self.image = image
-        self.caption = caption
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
 
         self.price = price
 
+        self.caption = caption
         self.caption_render = shop_font.render(
             self.caption, True, (255, 255, 255), (20, 20, 20)
         )
@@ -241,15 +242,15 @@ store_items.add(
     StoreItem(
         dice_image["white"]["1"],
         "Odd Only",
-        DISPLAY_WIDTH * 4 / 7,
-        DISPLAY_HEIGHT * 1 / 4 - 100,
+        DISPLAY_WIDTH * 4 // 7,
+        DISPLAY_HEIGHT * 1 // 4 - 100,
         price=3,
     ),
     StoreItem(
         dice_image["red"]["2"],
         "Even Only",
-        DISPLAY_WIDTH * 4 / 7 + 100,
-        DISPLAY_HEIGHT * 1 / 4 - 100,
+        DISPLAY_WIDTH * 4 // 7 + 100,
+        DISPLAY_HEIGHT * 1 // 4 - 100,
         price=3,
     ),
 )
@@ -302,9 +303,9 @@ class Button:
 
 
 class DieCategory(enum.Enum):
-    FAIR = 0
-    EVEN_ONLY = 1
-    ODD_ONLY = 2
+    FAIR = "Fair"
+    EVEN_ONLY = "Even Only"
+    ODD_ONLY = "Odd Only"
 
 
 class Die:
@@ -319,8 +320,28 @@ class Die:
 
         self.category = category
 
+        self.caption = str(category.value)
+        self.caption_render = shop_font.render(
+            self.caption, True, (255, 255, 255), (20, 20, 20)
+        )
+        self.hovering = False
+
     def render_surface(self):
         return dice_image[self.color][str(self.value)]
+
+    def draw(self, surface):
+        surface.blit(self.image, self.rect)
+        self.caption_render = shop_font.render(
+            self.caption, True, (255, 255, 255), (20, 20, 20)
+        )
+        if self.hovering:
+            surface.blit(
+                self.caption_render,
+                (
+                    self.rect.centerx - self.caption_render.width / 2,
+                    self.rect.top - (self.caption_render.height),
+                ),
+            )
 
 
 class Dice:
@@ -369,7 +390,8 @@ class Dice:
 
     def draw(self, surface):
         for die in self.inventory:
-            surface.blit(die.image, die.rect)
+            die.draw(surface)
+            # surface.blit(die.image, die.rect)
 
     def reset_position(self):
         self.x = self.orig_x
@@ -456,6 +478,9 @@ pygame.mouse.set_visible(False)
 
 player_healthbar = Healthbar(10, 10)
 shop_button = Button(30, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Shop")
+throw_button = Button(
+    DISPLAY_WIDTH - 400, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Throw!"
+)
 shop_goback_button = ButtonSmall(
     DISPLAY_WIDTH - 200, DISPLAY_HEIGHT / 2 - button_small_sprite_size.height, "Back"
 )
@@ -488,9 +513,6 @@ total_lives = 3
 
 player_dice = Dice()
 enemy_dice = Dice(enemy=True)
-
-# begin playing menu music before anything
-# play_sound(loops=-1)
 
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
@@ -528,6 +550,9 @@ while True:
                 case game_state.SHOP:
                     for sprite in store_items:
                         sprite.hovering = sprite.rect.collidepoint(mx, my)
+                case game_state.GAME:
+                    for die in player_dice.inventory:
+                        die.hovering = die.rect.collidepoint(mx, my)
 
         if event.type == pygame.KEYDOWN:
             match game_state:
@@ -545,7 +570,6 @@ while True:
                 case game_state.MENU:
                     play_sound(transition_sound, sfx_channel, 0.5, 0)
                     game_state = game_state.GAME
-                    # TODO: play gambling music
                     stop_sound(music_channel)
                     play_sound(
                         pygame.Sound(resource_path("assets/gambling.wav")),
@@ -559,11 +583,11 @@ while True:
                     for item in store_items:
                         if item.rect.collidepoint(mx, my) and coins >= item.price:
                             logger.info(f"Bought store item for ${item.price}")
-                            # TODO: play item buy sound
+                            play_sound(buy_sound, sfx_channel, loops=0)
 
                             coins -= item.price
                             player_dice.individual_dice.append(item)
-                            # TODO: some sort of indication that the dice has been purchased
+
                             match item.caption:
                                 case "Odd Only":
                                     number = random.choice([1, 3, 5])
@@ -581,9 +605,7 @@ while True:
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
-
-                    print(player_dice.get_rect())
-                    if player_dice.get_rect().collidepoint(mx, my):
+                    if throw_button.rect.collidepoint(mx, my):
                         logger.debug("throwing die")
                         player_dice.throw()
                         # Play rolling sfx
@@ -680,6 +702,7 @@ while True:
         enemy_dice.update()
 
         shop_button.draw(display)
+        throw_button.draw(display)
 
         if start_enemy_timer:
             enemy_roll_timer += 1
@@ -755,6 +778,7 @@ while True:
 
     if game_state == game_state.GAME_OVER:
         reset_game()
+        display.fill((20, 20, 20))
         display.blit(
             game_over_text,
             (
@@ -774,7 +798,6 @@ while True:
             ),
         )
 
-    # cursor should apply across all game states
     display.blit(cursor_sprite, (mx, my))
 
     pygame.display.update()
