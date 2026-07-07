@@ -9,6 +9,11 @@ from loguru import logger
 pygame.init()
 
 
+screen_info = pygame.display.Info()
+DISPLAY_WIDTH = screen_info.current_w
+DISPLAY_HEIGHT = screen_info.current_h
+
+
 def resource_path(relative_path: str) -> Path:
     base_path = Path(getattr(sys, "_MEIPASS", Path(__file__).resolve().parent))
     return base_path / relative_path
@@ -43,8 +48,11 @@ def stop_sound():
         logger.warning(f"Failed to stop sound")
 
 
-display = pygame.display.set_mode((1920, 1080))
+purchased_dice = []
 
+display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+
+# shop_background = pygame.transform.scale_by(pygame.image.load(resource_path())
 font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 50)
 button_font = pygame.font.Font(
     resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 34
@@ -106,7 +114,7 @@ current_objective = get_random_objective()
 
 def draw_objective(surface: pygame.Surface, objective: Objective):
     text = button_font.render(f"Objective: {objective.value}", True, (220, 220, 220))
-    surface.blit(text, (1920 / 2 - text.width / 2, 10))
+    surface.blit(text, (DISPLAY_WIDTH / 2 - text.width / 2, 10))
 
 
 dice_image = {
@@ -154,7 +162,9 @@ dice_image = {
 
 
 class StoreItem(pygame.sprite.Sprite):
-    def __init__(self, image: pygame.Surface, caption: str, x: int, y: int, *groups):
+    def __init__(
+        self, image: pygame.Surface, caption: str, x: int, y: int, price: int, *groups
+    ):
         super().__init__(*groups)
 
         self.image = image
@@ -162,6 +172,8 @@ class StoreItem(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.x = x
         self.rect.y = y
+
+        self.price = price
 
         self.caption_render = shop_font.render(
             self.caption, True, (255, 255, 255), (20, 20, 20)
@@ -184,8 +196,20 @@ class StoreItem(pygame.sprite.Sprite):
 store_items = pygame.sprite.Group()
 
 store_items.add(
-    StoreItem(dice_image["white"]["1"], "Odd Only", 1920 // 2 + 50, 1080 // 2 + 50),
-    StoreItem(dice_image["red"]["2"], "Even Only", 1920 // 2 + 150, 1080 // 2 + 50),
+    StoreItem(
+        dice_image["white"]["1"],
+        "Odd Only",
+        DISPLAY_WIDTH // 2 + 50,
+        DISPLAY_HEIGHT // 2 + 50,
+        price=3,
+    ),
+    StoreItem(
+        dice_image["red"]["2"],
+        "Even Only",
+        DISPLAY_WIDTH // 2 + 150,
+        DISPLAY_HEIGHT // 2 + 50,
+        price=3,
+    ),
 )
 
 
@@ -242,11 +266,13 @@ class Dice:
         self.image = pygame.Surface((Dice.SIZE[0], Dice.SIZE[1]), pygame.SRCALPHA)
 
         self.roll_history = []
-        self.roll()
+        # self.roll()
+
+        self.individual_dice = []
 
         self.rect = self.image.get_rect()
-        # self.rect.x = 1920 // 2 - self.rect.width / 2
-        # self.rect.y = 1080 - 100
+        # self.rect.x = DISPLAY_WIDTH // 2 - self.rect.width / 2
+        # self.rect.y = DISPLAY_HEIGHT - 100
         self.rect.x = x
         self.rect.y = y
 
@@ -271,6 +297,21 @@ class Dice:
                 self.rect.y = self.origin[1]
                 self.throw_timer = 0
 
+    def add_dice(self, number: int, color: str):
+        logger.debug(f"adding individual dice {dice_image[color][str(number)]}")
+        self.individual_dice.append(dice_image[color][str(number)])
+        if color == "red":
+            self.index_red = str(number)
+        match len(self.individual_dice):
+            case 1:
+                self.image.blit(self.individual_dice[0].image, (0, 0))
+            case 2:
+                self.image.blit(self.individual_dice[0].image, (0, 0))
+                self.image.blit(
+                    self.individual_dice[1],
+                    (self.individual_dice[0].rect.width + 5, 0),
+                )
+
     def roll(self):
         self.index_red = random.choice([i for i in dice_image["red"]])
         self.index_white = random.choice([i for i in dice_image["white"]])
@@ -287,12 +328,12 @@ class Dice:
 
     def throw(self, enemy=False):
         """throw dice into screen"""
-        self.roll()
-        self.rect.x = 1920 / 2 - self.rect.width / 2
-        self.rect.y = 1080 - 300
+        # self.roll()
+        self.rect.x = DISPLAY_WIDTH / 2 - self.rect.width / 2
+        self.rect.y = DISPLAY_HEIGHT - 300
 
         if enemy:
-            self.rect.x = 1920 / 2 - self.rect.width / 2
+            self.rect.x = DISPLAY_WIDTH / 2 - self.rect.width / 2
             self.rect.y = 300
 
     def total(self) -> int:
@@ -339,20 +380,20 @@ artifacts_text = button_font.render("Artifacts (powerups)", True, (255, 255, 255
 dice_text = button_font.render("Dice", True, (255, 255, 255))
 mx, my = 0, 0
 
-coins = 0
+coins = 6
 
 # disable default cursor
 pygame.mouse.set_visible(False)
 
 player_healthbar = Healthbar(10, 10)
 end_turn_button = Button(
-    1920 - (button_sprite_size.width + 30),
-    1080 - (button_sprite_size.height + 200),
+    DISPLAY_WIDTH - (button_sprite_size.width + 30),
+    DISPLAY_HEIGHT - (button_sprite_size.height + 200),
     "End Turn",
 )
-shop_button = Button(30, 1080 - (button_sprite_size.height + 10), "Shop")
+shop_button = Button(30, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Shop")
 shop_goback_button = ButtonSmall(
-    1920 - 200, 1080 / 2 - button_small_sprite_size.height, "Back"
+    DISPLAY_WIDTH - 200, DISPLAY_HEIGHT / 2 - button_small_sprite_size.height, "Back"
 )
 
 
@@ -375,14 +416,14 @@ def draw_enemy_health(surface):
     pygame.draw.rect(
         surface,
         (200, 0, 0),
-        pygame.rect.Rect(1920 - health_bar_size - 10, 10, health_bar_size, 25),
+        pygame.rect.Rect(DISPLAY_WIDTH - health_bar_size - 10, 10, health_bar_size, 25),
     )
 
 
 total_lives = 3
 
-player_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 1080 - 100)
-enemy_dice = Dice(1920 // 2 - Dice.SIZE[0] / 2, 100)
+player_dice = Dice(DISPLAY_WIDTH // 2 - Dice.SIZE[0] / 2, DISPLAY_HEIGHT - 100)
+enemy_dice = Dice(DISPLAY_WIDTH // 2 - Dice.SIZE[0] / 2, 100)
 
 # begin playing menu music before anything
 play_sound(loops=-1)
@@ -401,6 +442,12 @@ def player_speak_text(text) -> pygame.Surface:
 
 enemy_roll_timer = 0
 start_enemy_timer = False
+
+
+def add_coin_animation(surface: pygame.Surface):
+    """TODO: [POLISH] add coin animation from bottom of screen."""
+    pass
+
 
 while True:
     for event in pygame.event.get():
@@ -436,6 +483,23 @@ while True:
                     if shop_goback_button.rect.collidepoint(mx, my):
                         game_state = game_state.GAME
 
+                    for item in store_items:
+                        if item.rect.collidepoint(mx, my) and coins >= item.price:
+                            if len(player_dice.individual_dice) < 2:
+                                logger.info(f"Bought store item for ${item.price}")
+                                coins -= item.price
+                                player_dice.individual_dice.append(item)
+                                # TODO: some sort of indication that the dice has been purchased
+                                match item.caption:
+                                    case "Odd Only":
+                                        number = random.choice([1, 3, 5])
+                                        color = "red"
+                                        player_dice.add_dice(number, color)
+                                    case "Even Only":
+                                        number = random.choice([2, 4, 6])
+                                        color = "white"
+                                        player_dice.add_dice(number, color)
+
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
@@ -454,18 +518,28 @@ while True:
         display.fill((25, 25, 25))
 
         display.blit(
-            play_text, (1920 / 2 - play_text.width / 2, 1080 / 2 - play_text.height / 2)
+            play_text,
+            (
+                DISPLAY_WIDTH / 2 - play_text.width / 2,
+                DISPLAY_HEIGHT / 2 - play_text.height / 2,
+            ),
         )
 
     if game_state == game_state.SHOP:
         # buy power ups
         # choose dice
+
+        # TODO: draw background as png
+
         display.fill((50, 50, 50))
 
         display.blit(cursor_sprite, (mx, my))
         display.blit(
             shop_text,
-            (1920 / 2 - shop_text.width / 2, 1080 / 10 - shop_text.height / 2),
+            (
+                DISPLAY_WIDTH / 2 - shop_text.width / 2,
+                DISPLAY_HEIGHT / 10 - shop_text.height / 2,
+            ),
         )
 
         # draw lives still
@@ -475,26 +549,35 @@ while True:
         shop_goback_button.draw(display)
 
         # draw money
-        display.blit(coin_sprite, (1920 - (coin_sprite.get_rect().width + 120), 15))
         display.blit(
-            shop_font.render(f"{coins} Coins", False, (255, 255, 255)), (1920 - 120, 20)
+            coin_sprite, (DISPLAY_WIDTH - (coin_sprite.get_rect().width + 120), 15)
+        )
+        display.blit(
+            shop_font.render(f"{coins} Coins", False, (255, 255, 255)),
+            (DISPLAY_WIDTH - 120, 20),
         )
 
         # middle line through screen
-        pygame.draw.rect(display, (10, 10, 10), pygame.rect.Rect(0, 1080 / 2, 1920, 25))
+        pygame.draw.rect(
+            display,
+            (10, 10, 10),
+            pygame.rect.Rect(0, DISPLAY_HEIGHT / 2, DISPLAY_WIDTH, 25),
+        )
 
         # draw artifacts text
-        display.blit(artifacts_text, (1920 / 7, (1080 / 2) + 20))
+        display.blit(artifacts_text, (DISPLAY_WIDTH / 7, (DISPLAY_HEIGHT / 2) + 20))
 
         # draw line from center, center, to center, bottom
         pygame.draw.rect(
-            display, (10, 10, 10), pygame.rect.Rect(1920 / 2, 1080 / 2, 25, 1080 / 2)
+            display,
+            (10, 10, 10),
+            pygame.rect.Rect(DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, 25, 1080 / 2),
         )
 
         for item in store_items:
             item.draw(display)
 
-        display.blit(dice_text, (1920 - 500, 1080 / 2 + 20))
+        display.blit(dice_text, (DISPLAY_WIDTH - 500, DISPLAY_HEIGHT / 2 + 20))
 
     if game_state == game_state.GAME:
         display.fill((50, 50, 50))
@@ -505,16 +588,20 @@ while True:
 
         # draw bar to have UI stuff blow it
         pygame.draw.rect(
-            display, (20, 20, 20), pygame.rect.Rect(0, 1080 - 150, 1920, 20)
+            display,
+            (20, 20, 20),
+            pygame.rect.Rect(0, DISPLAY_HEIGHT - 150, DISPLAY_WIDTH, 20),
         )
 
         # draw PLAYER dialogue box
-        draw_dialogue_box(display, 150, 1080 // 2)
-        display.blit(player_render_roll_text, (175, 1080 // 2 + 20))
+        draw_dialogue_box(display, 150, DISPLAY_HEIGHT // 2)
+        display.blit(player_render_roll_text, (175, DISPLAY_HEIGHT // 2 + 20))
 
         # draw ENEMY dialogue box
-        draw_dialogue_box(display, 1920 - 500, 1080 // 10)
-        display.blit(enemy_render_roll_text, (1920 - 480, 1080 // 10 + 20))
+        draw_dialogue_box(display, DISPLAY_WIDTH - 500, DISPLAY_HEIGHT // 10)
+        display.blit(
+            enemy_render_roll_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20)
+        )
 
         # draw current roll objective
         draw_objective(display, current_objective)
@@ -547,8 +634,8 @@ while True:
                             ]
                         ):
                             total_lives -= 1
-                            # display.blit(player_speak_text("I lost... (ow)"), (175, 1080 // 2 + 20))
-                            # display.blit(player_speak_text("I won!"), (1920 - 480, 1080 // 10 + 20))
+                            # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
+                            # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                             if total_lives == 0:
                                 game_state = GameState.GAME_OVER
                         else:
@@ -557,8 +644,8 @@ while True:
                             total_lives += 1
                             if total_lives > 9:
                                 game_state = GameState.WIN
-                            # display.blit(player_speak_text("I won!"), (175, 1080 // 2 + 20))
-                            # display.blit(player_speak_text("I lost!?"), (1920 - 480, 1080 // 10 + 20))
+                            # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
+                            # display.blit(player_speak_text("I lost!?"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
 
                     case Objective.ROLL_LOWEST_NUM:
                         if (
@@ -568,8 +655,8 @@ while True:
                             ]
                         ):
                             total_lives -= 1
-                            # display.blit(player_speak_text("I lost... (ow)"), (175, 1080 // 2 + 20))
-                            # display.blit(player_speak_text("I won!"), (1920 - 480, 1080 // 10 + 20))
+                            # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
+                            # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                             if total_lives == 0:
                                 game_state = GameState.GAME_OVER
                         else:
@@ -582,14 +669,20 @@ while True:
         display.fill((20, 20, 20))
         display.blit(
             game_over_text,
-            (1920 / 2 - game_over_text.width / 2, 1080 / 2 - game_over_text.height / 2),
+            (
+                DISPLAY_WIDTH / 2 - game_over_text.width / 2,
+                DISPLAY_HEIGHT / 2 - game_over_text.height / 2,
+            ),
         )
 
     if game_state == game_state.WIN:
         display.fill((20, 255, 30))
         display.blit(
             game_win_text,
-            (1920 / 2 - game_win_text.width / 2, 1080 / 2 - game_win_text.height / 2),
+            (
+                DISPLAY_WIDTH / 2 - game_win_text.width / 2,
+                DISPLAY_HEIGHT / 2 - game_win_text.height / 2,
+            ),
         )
 
     # cursor should apply across all game states
