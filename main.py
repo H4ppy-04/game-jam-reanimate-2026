@@ -33,26 +33,29 @@ except pygame.error as e:
     logger.warning(f"Sound disabed: {e}")
 
 
-def queue_sound(sound):
+def queue_sound(sound: pygame.Sound, channel: pygame.mixer.Channel):
     if sound_enabled:
-        pygame.mixer.music.load(sound)
+        channel.queue(sound)
     else:
         logger.warning(f"Failed to load sound: {sound}")
 
 
-def play_sound(loops=-1):
+def play_sound(sound, channel: pygame.mixer.Channel, loops=-1):
     if sound_enabled:
-        pygame.mixer.music.play(loops)
+        channel.play(sound, loops)
     else:
         logger.warning(f"Failed to play sound")
 
 
-def stop_sound():
+def stop_sound(channel: pygame.mixer.Channel):
     if sound_enabled:
-        pygame.mixer.music.stop()
+        channel.stop()
     else:
         logger.warning(f"Failed to stop sound")
 
+
+music_channel = pygame.mixer.Channel(0)
+sfx_channel = pygame.mixer.Channel(1)
 
 purchased_dice = []
 
@@ -67,7 +70,7 @@ button_font = pygame.font.Font(
 )
 shop_font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 24)
 
-queue_sound(resource_path("assets/mainMenu.wav"))
+# queue_sound(resource_path("assets/mainMenu.wav"))
 pygame.display.set_caption("Roll the Bones...")
 
 green_health_sprite = pygame.transform.scale2x(
@@ -105,6 +108,11 @@ cursor_sprite = pygame.transform.scale2x(
 coin_sprite = pygame.transform.scale2x(
     pygame.image.load(resource_path("assets/coin.png")).convert_alpha()
 )
+
+roll_sfx = [
+    pygame.mixer.Sound(resource_path(f"assets/diceRoll{i}.wav")) for i in range(1, 3)
+]
+queue_sound(pygame.Sound(resource_path("assets/gambling.wav")), music_channel)
 
 
 class Objective(enum.Enum):
@@ -176,11 +184,19 @@ def reset_game():
     enemy_dice.inventory.clear()
     player_dice.inventory.clear()
 
-    player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
-    player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+    player_dice.add_dice(
+        Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+    )
+    player_dice.add_dice(
+        Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+    )
 
-    enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
-    enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+    enemy_dice.add_dice(
+        Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+    )
+    enemy_dice.add_dice(
+        Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+    )
 
 
 class StoreItem(pygame.sprite.Sprite):
@@ -470,7 +486,7 @@ player_dice = Dice()
 enemy_dice = Dice(enemy=True)
 
 # begin playing menu music before anything
-play_sound(loops=-1)
+# play_sound(loops=-1)
 
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
@@ -493,6 +509,8 @@ enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategor
 enemy_roll_timer = 0
 start_enemy_timer = False
 
+
+play_sound(pygame.Sound(resource_path("assets/gambling.wav")), music_channel)
 
 while True:
     for event in pygame.event.get():
@@ -521,9 +539,12 @@ while True:
             match game_state:
                 case game_state.MENU:
                     game_state = game_state.GAME
-                    stop_sound()
-                    queue_sound(resource_path("assets/gambling.wav"))
-                    play_sound()
+                    # TODO: play gambling music
+                    stop_sound(music_channel)
+                    play_sound(
+                        pygame.Sound(resource_path("assets/gambling.wav")),
+                        music_channel,
+                    )
 
                 case game_state.SHOP:
                     if shop_goback_button.rect.collidepoint(mx, my):
@@ -532,6 +553,8 @@ while True:
                     for item in store_items:
                         if item.rect.collidepoint(mx, my) and coins >= item.price:
                             logger.info(f"Bought store item for ${item.price}")
+                            # TODO: play item buy sound
+
                             coins -= item.price
                             player_dice.individual_dice.append(item)
                             # TODO: some sort of indication that the dice has been purchased
@@ -539,11 +562,15 @@ while True:
                                 case "Odd Only":
                                     number = random.choice([1, 3, 5])
                                     color = "red"
-                                    player_dice.add_dice(number, color, DieCategory.ODD_ONLY)
+                                    player_dice.add_dice(
+                                        number, color, DieCategory.ODD_ONLY
+                                    )
                                 case "Even Only":
                                     number = random.choice([2, 4, 6])
                                     color = "white"
-                                    player_dice.add_dice(number, color, DieCategory.EVEN_ONLY)
+                                    player_dice.add_dice(
+                                        number, color, DieCategory.EVEN_ONLY
+                                    )
 
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
@@ -553,10 +580,13 @@ while True:
                     if player_dice.get_rect().collidepoint(mx, my):
                         logger.debug("throwing die")
                         player_dice.throw()
+                        # Play rolling sfx
+                        play_sound(random.choice(roll_sfx), sfx_channel)
+
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
 
-                    stop_sound()
+                    stop_sound(music_channel)
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
@@ -653,8 +683,12 @@ while True:
                 enemy_render_roll_text = render_roll_text(enemy_dice.total())
 
                 enemy_dice.inventory.clear()
-                enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
-                enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+                enemy_dice.add_dice(
+                    Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+                )
+                enemy_dice.add_dice(
+                    Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
+                )
 
                 match current_objective:
                     case Objective.ROLL_HIGHEST_NUM:
