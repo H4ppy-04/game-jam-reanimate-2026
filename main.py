@@ -1,4 +1,5 @@
 import enum
+from os import wait
 import random
 import socket
 import sys
@@ -40,9 +41,11 @@ def queue_sound(sound: pygame.Sound, channel: pygame.mixer.Channel):
         logger.warning(f"Failed to load sound: {sound}")
 
 
-def play_sound(sound, channel: pygame.mixer.Channel, loops=-1):
+def play_sound(sound, channel: pygame.mixer.Channel, volume: float = 1.0, loops=-1):
     if sound_enabled:
+        channel.set_volume(volume)
         channel.play(sound, loops)
+        channel.set_volume(1.0)
     else:
         logger.warning(f"Failed to play sound")
 
@@ -113,6 +116,7 @@ roll_sfx = [
     pygame.mixer.Sound(resource_path(f"assets/diceRoll{i}.wav")) for i in range(1, 3)
 ]
 queue_sound(pygame.Sound(resource_path("assets/gambling.wav")), music_channel)
+transition_sound = pygame.mixer.Sound(resource_path("assets/transition.wav"))
 
 
 class Objective(enum.Enum):
@@ -509,8 +513,7 @@ enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategor
 enemy_roll_timer = 0
 start_enemy_timer = False
 
-
-play_sound(pygame.Sound(resource_path("assets/gambling.wav")), music_channel)
+play_sound(pygame.Sound(resource_path("assets/mainMenu.wav")), music_channel)
 
 while True:
     for event in pygame.event.get():
@@ -531,13 +534,16 @@ while True:
                 case game_state.MENU:
                     if event.key == pygame.K_RETURN:
                         game_state = game_state.GAME
+                        play_sound(transition_sound, sfx_channel, 0.5, 0)
                 case game_state.GAME_OVER | game_state.WIN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         game_state = game_state.MENU
+                        play_sound(transition_sound, sfx_channel, 0.5, 0)
 
         if event.type == pygame.MOUSEBUTTONDOWN:
             match game_state:
                 case game_state.MENU:
+                    play_sound(transition_sound, sfx_channel, 0.5, 0)
                     game_state = game_state.GAME
                     # TODO: play gambling music
                     stop_sound(music_channel)
@@ -586,7 +592,7 @@ while True:
                         player_render_roll_text = render_roll_text(player_dice.total())
                         start_enemy_timer = True
 
-                    stop_sound(music_channel)
+                    # stop_sound(music_channel)
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
@@ -606,7 +612,6 @@ while True:
         # buy power ups
         # choose dice
 
-        # display.fill((50, 50, 50))
         display.blit(shop_background, (0, 0))
 
         display.blit(cursor_sprite, (mx, my))
