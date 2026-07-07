@@ -183,8 +183,9 @@ dice_image = {
 
 
 def reset_game():
-    global total_lives, coins, enemy_dice, player_dice
+    global total_lives, coins, enemy_dice, player_dice, current_round
     total_lives = 3
+    current_round = 0
     coins = 6
     enemy_dice.inventory.clear()
     player_dice.inventory.clear()
@@ -463,6 +464,17 @@ def draw_dialogue_box(surface, x, y):
 
 game_state = GameState.MENU
 
+current_round = 1
+
+
+def render_round_num_text(current_round: int) -> pygame.Surface:
+    text = button_font.render(
+        f"Round {current_round}/3", True, (10, 10, 10), (200, 200, 200)
+    )
+    return text
+
+
+round_num_text = render_round_num_text(current_round)
 play_text = font.render("PLAY GAME", True, (255, 255, 255))
 shop_text = font.render("DICE SHOP", True, (255, 255, 255))
 game_over_text = font.render("GAME OVER", True, (255, 255, 255))
@@ -704,6 +716,10 @@ while True:
         shop_button.draw(display)
         throw_button.draw(display)
 
+        display.blit(
+            round_num_text, (DISPLAY_WIDTH / 2 - round_num_text.width / 2, 500)
+        )
+
         if start_enemy_timer:
             enemy_roll_timer += 1
             if enemy_roll_timer > 250:
@@ -722,43 +738,56 @@ while True:
 
                 match current_objective:
                     case Objective.ROLL_HIGHEST_NUM:
-                        if (
-                            enemy_dice.total()
-                            > player_dice.roll_history[
-                                len(player_dice.roll_history) - 1
-                            ]
-                        ):
-                            total_lives -= 1
-                            # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
-                            # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
-                            if total_lives == 0:
-                                game_state = GameState.GAME_OVER
+                        if current_round < 3:
+                            current_round += 1
+                            round_num_text = render_round_num_text(current_round)
                         else:
-                            # the player won
-                            coins += 1
-                            total_lives += 1
-                            if total_lives > 9:
-                                game_state = GameState.WIN
-                            # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
-                            # display.blit(player_speak_text("I lost!?"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                            current_round = 1
+                            round_num_text = render_round_num_text(current_round)
+
+                            if (
+                                enemy_dice.total()
+                                > player_dice.roll_history[
+                                    len(player_dice.roll_history) - 1
+                                ]
+                            ):
+                                total_lives -= 1
+                                # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
+                                # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                                if total_lives == 0:
+                                    game_state = GameState.GAME_OVER
+                            else:
+                                # the player won
+                                coins += 1
+                                total_lives += 1
+                                if total_lives > 9:
+                                    game_state = GameState.WIN
+                                # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
+                                # display.blit(player_speak_text("I lost!?"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
 
                     case Objective.ROLL_LOWEST_NUM:
-                        if (
-                            enemy_dice.total()
-                            < player_dice.roll_history[
-                                len(player_dice.roll_history) - 1
-                            ]
-                        ):
-                            total_lives -= 1
-                            # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
-                            # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
-                            if total_lives == 0:
-                                game_state = GameState.GAME_OVER
+                        if current_round < 3:
+                            current_round += 1
+                            round_num_text = render_round_num_text(current_round)
                         else:
-                            coins += 1
-                            total_lives += 1
-                            if total_lives > 9:
-                                game_state = GameState.WIN
+                            current_round = 1
+                            round_num_text = render_round_num_text(current_round)
+                            if (
+                                enemy_dice.total()
+                                < player_dice.roll_history[
+                                    len(player_dice.roll_history) - 1
+                                ]
+                            ):
+                                total_lives -= 1
+                                # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
+                                # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                                if total_lives == 0:
+                                    game_state = GameState.GAME_OVER
+                            else:
+                                coins += 1
+                                total_lives += 1
+                                if total_lives > 9:
+                                    game_state = GameState.WIN
 
                 for die in player_dice.inventory:
                     print("randomizing die")
