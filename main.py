@@ -81,7 +81,7 @@ def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[st
 
 
 def render_wrapped_text(
-        text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
+    text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
 ) -> pygame.Surface:
     lines = wrap_text(text, text_font, max_width)
     line_surfaces = [text_font.render(line, True, color) for line in lines]
@@ -128,22 +128,16 @@ red_health_sprite = pygame.transform.scale2x(
 )
 
 game_background = pygame.image.load(resource_path("assets/playingMat.png"))
+tile_sprite = pygame.image.load(resource_path("assets/brickTexture.png"))
+tile_sprite_long = pygame.Surface((DISPLAY_WIDTH, 200))
+for i in range(0, DISPLAY_WIDTH, tile_sprite.width):
+    tile_sprite_long.blit(tile_sprite, (i, 0))
 
 button_sprite_size = pygame.transform.scale2x(
-    pygame.image.load(
-        resource_path(
-            "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
-        )
-    ).convert_alpha()
+    pygame.image.load(resource_path("assets/button.png")).convert_alpha()
 ).get_rect()
 button_small_sprite_size = (
-    pygame.image.load(
-        resource_path(
-            "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
-        )
-    )
-    .convert_alpha()
-    .get_rect()
+    pygame.image.load(resource_path("assets/button.png")).convert_alpha().get_rect()
 )
 
 health_sprite_width = 10
@@ -331,9 +325,7 @@ store_items.add(
 class ButtonSmall:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.image.load(
-            resource_path(
-                "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
-            )
+            resource_path("assets/button.png")
         ).convert_alpha()
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
@@ -353,11 +345,7 @@ class ButtonSmall:
 class Button:
     def __init__(self, x, y, text) -> None:
         self.image = pygame.transform.scale2x(
-            pygame.image.load(
-                resource_path(
-                    "assets/kenney_ui-pack/PNG/Blue/Default//button_rectangle_border.png"
-                )
-            ).convert_alpha()
+            pygame.image.load(resource_path("assets/button.png")).convert_alpha()
         )
         self.rect = self.image.get_rect()
         self.rect.x, self.rect.y = x, y
@@ -402,6 +390,17 @@ class Die:
         )
         self.hovering = False
 
+        self.uses_render = pygame.Surface((40, 40))
+        pygame.draw.circle(
+            self.uses_render,
+            (255, 0, 255),
+            (self.rect.width - 10, self.rect.height - 10),
+            15,
+        )
+        self.uses_font = pygame.font.Font(
+            resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 22
+        )
+
     def render_surface(self):
         return dice_image[self.color][str(self.value)]
 
@@ -409,6 +408,10 @@ class Die:
         surface.blit(self.image, self.rect)
         self.caption_render = shop_font.render(
             self.caption, True, (255, 255, 255), (20, 20, 20)
+        )
+        surface.blit(
+            self.uses_font.render(str(self.uses), True, (200, 0, 200)),
+            (self.rect.bottomright),
         )
         if self.hovering:
             surface.blit(
@@ -721,7 +724,7 @@ while True:
                         if len(selected):
                             player_dice.throw()
                             # Play rolling sfx
-                            play_sound(random.choice(roll_sfx), sfx_channel)
+                            play_sound(random.choice(roll_sfx), sfx_channel, loops=0)
 
                             player_render_roll_text = render_roll_text(
                                 player_dice.total()
@@ -793,12 +796,7 @@ while True:
         # draw Healthbar
         draw_player_health(display, total_lives)
 
-        # draw bar to have UI stuff blow it
-        pygame.draw.rect(
-            display,
-            (20, 20, 20),
-            pygame.rect.Rect(0, DISPLAY_HEIGHT - 200, DISPLAY_WIDTH, 20),
-        )
+        display.blit(tile_sprite_long, (0, DISPLAY_HEIGHT - 200))
 
         # draw PLAYER dialogue box
         draw_dialogue_box(display, 150, DISPLAY_HEIGHT // 2)
@@ -871,8 +869,15 @@ while True:
                                 ]
                             ):
                                 total_lives -= 1
-                                enemy_reaction_text = render_wrapped_text(get_dialogue("enemy_win"), button_font, (0, 0, 0), 400)
-                                display.blit(enemy_reaction_text, (175, DISPLAY_HEIGHT // 2))
+                                enemy_reaction_text = render_wrapped_text(
+                                    get_dialogue("enemy_win"),
+                                    button_font,
+                                    (0, 0, 0),
+                                    400,
+                                )
+                                display.blit(
+                                    enemy_reaction_text, (175, DISPLAY_HEIGHT // 2)
+                                )
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
                                 if total_lives == 0:
@@ -959,4 +964,4 @@ while True:
     display.blit(cursor_sprite, (mx, my))
 
     pygame.display.update()
-    clock.tick(30)
+    clock.tick(60)
