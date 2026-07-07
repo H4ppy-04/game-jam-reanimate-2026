@@ -222,7 +222,7 @@ class StoreItem(pygame.sprite.Sprite):
 
         self.caption = caption
         self.caption_render = shop_font.render(
-            self.caption, True, (255, 255, 255), (20, 20, 20)
+            self.caption + f" (${str(self.price)})", True, (255, 255, 255), (20, 20, 20)
         )
 
         self.hovering = False
@@ -544,6 +544,7 @@ total_lives = 3
 
 player_dice = Dice()
 enemy_dice = Dice(enemy=True)
+# instantiate all enemy dice with selected being true
 
 player_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
 enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0))
@@ -562,6 +563,8 @@ player_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCatego
 
 enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
 enemy_dice.add_dice(Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR)
+for die in enemy_dice.inventory:
+    die.selected = True
 
 enemy_roll_timer = 0
 start_enemy_timer = False
@@ -647,6 +650,12 @@ while True:
                 case game_state.GAME:
                     if shop_button.rect.collidepoint(mx, my):
                         game_state = game_state.SHOP
+                    for die in player_dice.inventory:
+                        if die.rect.collidepoint(mx, my):
+                            if die.selected:
+                                die.selected = False
+                            if not die.selected:
+                                die.selected = True
                     if throw_button.rect.collidepoint(mx, my):
                         logger.debug("throwing die")
                         player_dice.throw()
@@ -769,6 +778,8 @@ while True:
                 enemy_dice.add_dice(
                     Dice.add_random().value, Dice.add_random().color, DieCategory.FAIR
                 )
+                for die in enemy_dice.inventory:
+                    die.selected = True
 
                 match current_objective:
                     case Objective.ROLL_HIGHEST_NUM:
