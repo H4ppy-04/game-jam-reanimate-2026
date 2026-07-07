@@ -237,15 +237,15 @@ store_items.add(
     StoreItem(
         dice_image["white"]["1"],
         "Odd Only",
-        DISPLAY_WIDTH * 4/7,
-        DISPLAY_HEIGHT * 1/4 - 100,
+        DISPLAY_WIDTH * 4 / 7,
+        DISPLAY_HEIGHT * 1 / 4 - 100,
         price=3,
     ),
     StoreItem(
         dice_image["red"]["2"],
         "Even Only",
-        DISPLAY_WIDTH * 4/7 + 100,
-        DISPLAY_HEIGHT * 1/4 - 100,
+        DISPLAY_WIDTH * 4 / 7 + 100,
+        DISPLAY_HEIGHT * 1 / 4 - 100,
         price=3,
     ),
 )
@@ -613,7 +613,9 @@ while True:
         display.blit(
             shop_text,
             (
-                DISPLAY_WIDTH * 3 / 4 - shop_text.width / 4 - 25, # On right side, on top of the Purple cloth
+                DISPLAY_WIDTH * 3 / 4
+                - shop_text.width / 4
+                - 25,  # On right side, on top of the Purple cloth
                 DISPLAY_HEIGHT / 10 - shop_text.height / 2,
             ),
         )
