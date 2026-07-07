@@ -38,7 +38,7 @@ DIALOGUE = {
         "The underworld bows to your roll",
         "You scratch destiny... and it yields",
         "Your victory burns hotter than Ra",
-        "Your lick strikes like a serpent",
+        "Your luck strikes like a serpent",
         "I taste defeat... bitter as desert dust",
         "Your roll... it stings",
         "Your luck strikes like a serpent",
