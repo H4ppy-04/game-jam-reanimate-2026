@@ -554,6 +554,8 @@ enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0
 player_reaction_text = dialogue_font.render("", True, (0, 0, 0))
 enemy_reaction_text = dialogue_font.render("", True, (0, 0, 0))
 
+shopkeeper_text = shop_font.render("", True, (0, 0, 0))
+
 def render_roll_text(roll) -> pygame.Surface:
     return font.render(f"I rolled a {roll}!", True, (0, 0, 0))
 
@@ -667,11 +669,17 @@ while True:
                                     player_dice.add_dice(
                                         number, color, DieCategory.ODD_ONLY
                                     )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_odd_purchase"), shop_font, (0, 0, 0), 400
+                                    )
                                 case "Even Only":
                                     number = random.choice([2, 4, 6])
                                     color = "white"
                                     player_dice.add_dice(
                                         number, color, DieCategory.EVEN_ONLY
+                                    )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_even_purchase"), shop_font, (0, 0, 0), 400
                                     )
                                 case "High Roll":
                                     number = random.choice([5, 6])
@@ -679,11 +687,17 @@ while True:
                                     player_dice.add_dice(
                                         number, color, DieCategory.HIGH_ROLL
                                     )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_highroll_purchase"), shop_font, (0, 0, 0), 400
+                                    )
                                 case "Low Roll":
                                     number = random.choice([1, 2])
                                     color = "red"
                                     player_dice.add_dice(
                                         number, color, DieCategory.LOW_ROLL
+                                    )
+                                    shopkeeper_text = render_wrapped_text(
+                                        get_dialogue("shopkeeper_lowroll_purchase"), shop_font, (0, 0, 0), 400
                                     )
 
                 case game_state.GAME:
@@ -723,6 +737,14 @@ while True:
         # choose dice
 
         display.blit(shop_background, (0, 0))
+
+        # draw dialogue box, right below the shopkeeper's mouth
+        draw_dialogue_box(display, DISPLAY_WIDTH * 2 / 7 + 40, DISPLAY_HEIGHT * 2 / 5 - 20)
+        display.blit(
+            shopkeeper_text, (
+                DISPLAY_WIDTH * 2 / 7 + 60, DISPLAY_HEIGHT * 2 / 5
+            )
+        )
 
         display.blit(cursor_sprite, (mx, my))
         display.blit(
@@ -845,7 +867,7 @@ while True:
                             ):
                                 total_lives -= 1
                                 enemy_reaction_text = render_wrapped_text(
-                                    get_dialogue("enemy_win"), dialogue_font, (0, 0, 0), 400
+                                    get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400
                                 )
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
@@ -856,7 +878,7 @@ while True:
                                 coins += 1
                                 total_lives += 1
                                 enemy_reaction_text = render_wrapped_text(
-                                    get_dialogue("enemy_lose"), dialogue_font, (0, 0, 0), 400
+                                    get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
                                 )
                                 if total_lives > 9:
                                     game_state = GameState.WIN
@@ -878,7 +900,7 @@ while True:
                             ):
                                 total_lives -= 1
                                 enemy_reaction_text = render_wrapped_text(
-                                    get_dialogue("enemy_win"), dialogue_font, (0, 0, 0), 400
+                                    get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400
                                 )
                                 # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
                                 # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
@@ -888,7 +910,7 @@ while True:
                                 coins += 1
                                 total_lives += 1
                                 enemy_reaction_text = render_wrapped_text(
-                                    get_dialogue("enemy_lose"), dialogue_font, (0, 0, 0), 400
+                                    get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
                                 )
                                 if total_lives > 9:
                                     game_state = GameState.WIN
