@@ -221,15 +221,15 @@ store_items.add(
     StoreItem(
         dice_image["white"]["1"],
         "Odd Only",
-        DISPLAY_WIDTH // 2 + 50,
-        DISPLAY_HEIGHT // 2 + 50,
+        DISPLAY_WIDTH * 4/7,
+        DISPLAY_HEIGHT * 1/4 - 100,
         price=3,
     ),
     StoreItem(
         dice_image["red"]["2"],
         "Even Only",
-        DISPLAY_WIDTH // 2 + 150,
-        DISPLAY_HEIGHT // 2 + 50,
+        DISPLAY_WIDTH * 4/7 + 100,
+        DISPLAY_HEIGHT * 1/4 - 100,
         price=3,
     ),
 )
@@ -422,7 +422,7 @@ def draw_dialogue_box(surface, x, y):
 game_state = GameState.MENU
 
 play_text = font.render("PLAY GAME", True, (255, 255, 255))
-shop_text = font.render("PLAYER SHOP", True, (255, 255, 255))
+shop_text = font.render("DICE SHOP", True, (255, 255, 255))
 game_over_text = font.render("GAME OVER", True, (255, 255, 255))
 game_win_text = font.render("YOU WON!", True, (255, 255, 255))
 artifacts_text = button_font.render("Artifacts (powerups)", True, (255, 255, 255))
@@ -583,7 +583,7 @@ while True:
         display.blit(
             shop_text,
             (
-                DISPLAY_WIDTH / 2 - shop_text.width / 2,
+                DISPLAY_WIDTH * 3 / 4 - shop_text.width / 4 - 25, # On right side, on top of the Purple cloth
                 DISPLAY_HEIGHT / 10 - shop_text.height / 2,
             ),
         )
@@ -596,36 +596,15 @@ while True:
 
         # draw money
         display.blit(
-            coin_sprite, (DISPLAY_WIDTH - (coin_sprite.get_rect().width + 120), 15)
+            coin_sprite, (DISPLAY_WIDTH - (coin_sprite.get_rect().width + 150), 30)
         )
         display.blit(
             shop_font.render(f"{coins} Coins", False, (255, 255, 255)),
-            (DISPLAY_WIDTH - 120, 20),
-        )
-
-        # middle line through screen
-        pygame.draw.rect(
-            display,
-            (10, 10, 10),
-            pygame.rect.Rect(0, DISPLAY_HEIGHT / 2, DISPLAY_WIDTH, 25),
-        )
-
-        # draw artifacts text
-        display.blit(artifacts_text, (DISPLAY_WIDTH / 7, (DISPLAY_HEIGHT / 2) + 20))
-
-        # draw line from center, center, to center, bottom
-        pygame.draw.rect(
-            display,
-            (10, 10, 10),
-            pygame.rect.Rect(
-                DISPLAY_WIDTH / 2, DISPLAY_HEIGHT / 2, 25, DISPLAY_HEIGHT / 2
-            ),
+            (DISPLAY_WIDTH - 150, 35),
         )
 
         for item in store_items:
             item.draw(display)
-
-        display.blit(dice_text, (DISPLAY_WIDTH - 500, DISPLAY_HEIGHT / 2 + 20))
 
     if game_state == game_state.GAME:
         display.fill((50, 50, 50))
