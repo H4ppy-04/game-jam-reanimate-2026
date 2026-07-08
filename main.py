@@ -14,15 +14,8 @@ pygame.init()
 clock = pygame.time.Clock()
 
 screen_info = pygame.display.Info()
-DISPLAY_WIDTH = screen_info.current_w
-DISPLAY_HEIGHT = screen_info.current_h
 
 MAX_TIMER_LIMIT = 50
-
-
-if socket.gethostname() == "fedora":
-    DISPLAY_WIDTH = 1920
-    DISPLAY_HEIGHT = 1080
 
 
 def resource_path(relative_path: str) -> Path:
@@ -62,13 +55,19 @@ def stop_sound(channel: pygame.mixer.Channel):
 
 
 def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[str]:
-    words = text.split(" ")
+    if not text or not text.strip():
+        return []
+
+    words = text.split()
     lines = []
     current_line = ""
 
     for word in words:
         test_line = f"{current_line} {word}".strip()
-        if text_font.size(test_line)[0] <= max_width:
+
+        if not current_line:
+            current_line = word
+        elif text_font.size(test_line)[0] <= max_width:
             current_line = test_line
         else:
             lines.append(current_line)
@@ -81,32 +80,37 @@ def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[st
 
 
 def render_wrapped_text(
-    text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
+    text: str,
+    text_font: pygame.font.Font,
+    color,
+    max_width: int,
+    line_spacing: int = 5
 ) -> pygame.Surface:
     lines = wrap_text(text, text_font, max_width)
+
+    if not lines:
+        return pygame.Surface((1, 1), pygame.SRCALPHA)
+
     line_surfaces = [text_font.render(line, True, color) for line in lines]
 
-    total_height = sum(s.height for s in line_surfaces) + line_spacing * (
-        len(line_surfaces) - 1
-    )
-    width = max(s.width for s in line_surfaces)
+    width = max(surface.get_width() for surface in line_surfaces)
+    total_height = sum(surface.get_height() for surface in line_surfaces) + line_spacing * (len(line_surfaces) - 1)
 
-    wrapped_surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
+    wrapped_surface = pygame.Surface((max(1, width), max(1, total_height)), pygame.SRCALPHA)
 
     y = 0
     for surface in line_surfaces:
         wrapped_surface.blit(surface, (0, y))
-        y += surface.height + line_spacing
+        y += surface.get_height() + line_spacing
 
     return wrapped_surface
-
 
 music_channel = pygame.mixer.Channel(0)
 sfx_channel = pygame.mixer.Channel(1)
 
 purchased_dice = []
 
-display = pygame.display.set_mode((DISPLAY_WIDTH, DISPLAY_HEIGHT))
+display = pygame.display.set_mode((1920, 1080))
 
 shop_background = pygame.transform.scale_by(
     pygame.image.load(resource_path("assets/shopkeeper.png")), 9.5
@@ -138,8 +142,8 @@ round_cell_on = pygame.transform.scale2x(
 
 game_background = pygame.image.load(resource_path("assets/playingMat.png"))
 tile_sprite = pygame.image.load(resource_path("assets/brickTexture.png"))
-tile_sprite_long = pygame.Surface((DISPLAY_WIDTH, 200))
-for i in range(0, DISPLAY_WIDTH, tile_sprite.width):
+tile_sprite_long = pygame.Surface((1920, 200))
+for i in range(0, 1920, tile_sprite.width):
     tile_sprite_long.blit(tile_sprite, (i, 0))
 
 button_sprite_size = pygame.transform.scale2x(
@@ -172,6 +176,8 @@ menu_background_rect = menu_background.get_rect()
 
 speech_dialogue_box = pygame.image.load(resource_path("assets/speechBubble.png"))
 speech_dialogue_box_reverse = pygame.transform.rotate(speech_dialogue_box, 180)
+speech_dialogue_box_upside_down = pygame.transform.flip(speech_dialogue_box, False, True)
+
 
 roll_sfx = [
     pygame.mixer.Sound(resource_path(f"assets/diceRoll{i}.wav")) for i in range(1, 3)
@@ -200,8 +206,7 @@ def draw_objective(surface: pygame.Surface, objective: Objective):
     text = button_font.render(
         f"Objective: {objective.value}", True, (220, 220, 220), (20, 20, 20)
     )
-    surface.blit(text, (DISPLAY_WIDTH / 2 - text.width / 2, 10))
-
+    surface.blit(text, (1920 / 2 - text.width / 2, 10))
 
 dice_image = {
     "red": {
@@ -313,29 +318,29 @@ store_items.add(
     StoreItem(
         dice_image["white"]["1"],
         "Odd Only",
-        DISPLAY_WIDTH * 4 // 7,
-        DISPLAY_HEIGHT * 1 // 4 - 100,
+        1920 * 4 // 7,
+        1080 * 1 // 4 - 100,
         price=3,
     ),
     StoreItem(
         dice_image["red"]["2"],
         "Even Only",
-        DISPLAY_WIDTH * 4 // 7 + 100,
-        DISPLAY_HEIGHT * 1 // 4 - 100,
+        1920 * 4 // 7 + 100,
+        1080 * 1 // 4 - 100,
         price=3,
     ),
     StoreItem(
         dice_image["red"]["1"],
         "Low Roll",
-        DISPLAY_WIDTH * 4 // 7 + 200,
-        DISPLAY_HEIGHT * 1 // 4 - 100,
+        1920 * 4 // 7 + 200,
+        1080 * 1 // 4 - 100,
         price=2,
     ),
     StoreItem(
         dice_image["red"]["6"],
         "High Roll",
-        DISPLAY_WIDTH * 4 // 7 + 300,
-        DISPLAY_HEIGHT * 1 // 4 - 100,
+        1920 * 4 // 7 + 300,
+        1080 * 1 // 4 - 100,
         price=4,
     ),
 )
@@ -442,6 +447,7 @@ class Die:
                     self.rect.top - (self.caption_render.height),
                 ),
             )
+    
 
 
 class Dice:
@@ -460,12 +466,12 @@ class Dice:
         self.in_center = False
 
         if enemy:
-            self.x = DISPLAY_WIDTH / 2 - 68
+            self.x = 1920 / 2 - 68
             self.y = 100
 
         else:
             self.x = Dice.PLAYER_START_X
-            self.y = DISPLAY_HEIGHT - 100
+            self.y = 1080 - 100
 
         self.orig_x = self.x
         self.orig_y = self.y
@@ -473,16 +479,18 @@ class Dice:
         self.enemy = enemy
 
     def position_die(self, throwing=False):
-        interval = 0
-        start_x = Dice.PLAYER_START_X
+        hotbar_interval = 0
+        thrown_interval = 0
+
         for die in self.inventory:
-            die.rect.x = start_x + interval
-            if not throwing:
-                die.rect.y = DISPLAY_HEIGHT - 100 if not self.enemy else 100
+            if throwing and die.selected:
+                die.rect.x = self.x + thrown_interval
+                die.rect.y = 1080 - 300 if not self.enemy else 300
+                thrown_interval += die.rect.width + 30
             else:
-                if die.selected:
-                    die.rect.y = DISPLAY_HEIGHT - 300 if not self.enemy else 300
-            interval += die.rect.width + 30
+                die.rect.x = Dice.PLAYER_START_X + hotbar_interval
+                die.rect.y = 1080 - 100 if not self.enemy else 100
+                hotbar_interval += die.rect.width + 30
 
     @staticmethod
     def add_random() -> Die:
@@ -521,13 +529,17 @@ class Dice:
 
     def get_size(self):
         return [sum([die.rect.width for die in self.inventory]), 68]
+    
+    def get_selected_size(self):
+        selected = [die for die in self.inventory if die.selected]
+        return [sum(die.rect.width for die in selected), 68]
 
     def throw(self):
         """throw dice into screen"""
         self.in_center = True
 
-        self.x = DISPLAY_HEIGHT / 2 - self.get_size()[0] / 2
-        self.y = DISPLAY_HEIGHT - 300
+        self.x = 1920 / 2 - self.get_selected_size()[0] / 2 - 68
+        self.y = 1080 - 300
 
         if self.enemy:
             self.y = 300
@@ -535,7 +547,21 @@ class Dice:
 
     def total(self) -> int:
         return sum([die.value for die in self.inventory if die.selected])
-
+    
+def roll_die(die: Die):
+    match die.category:
+        case DieCategory.FAIR:
+            die.value = random.randint(1, 6)
+        case DieCategory.EVEN_ONLY:
+            die.value = random.choice([2, 4, 6])
+        case DieCategory.ODD_ONLY:
+            die.value = random.choice([1, 3, 5])
+        case DieCategory.HIGH_ROLL:
+            die.value = random.choice([5, 6])
+        case DieCategory.LOW_ROLL:
+            die.value = random.choice([1, 2])
+    die.color = random.choice(["red", "white"])
+    die.image = die.render_surface()
 
 class GameState(enum.Enum):
     MENU = 0
@@ -560,8 +586,10 @@ class Healthbar(pygame.sprite.Sprite):
         display.blit(self.image, self.rect)
 
 
-def draw_dialogue_box(surface, x, y, reverse=False):
-    if reverse:
+def draw_dialogue_box(surface, x, y, reverse=False, flip=False):
+    if flip:
+        surface.blit(speech_dialogue_box_upside_down, (x, y))
+    elif reverse:
         surface.blit(speech_dialogue_box_reverse, (x, y))
     else:
         surface.blit(speech_dialogue_box, (x, y))
@@ -571,6 +599,7 @@ game_state = GameState.MENU
 
 current_round = 1
 
+last_thrown_dice = []
 
 def render_round_num_text(current_round: int) -> pygame.Surface:
     text = button_font.render(
@@ -594,12 +623,12 @@ coins = 6
 pygame.mouse.set_visible(False)
 
 player_healthbar = Healthbar(10, 10)
-shop_button = Button(30, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Shop")
+shop_button = Button(30, 1080 - (button_sprite_size.height + 10), "Shop")
 throw_button = Button(
-    DISPLAY_WIDTH - 400, DISPLAY_HEIGHT - (button_sprite_size.height + 10), "Throw!"
+    1920 - 400, 1080 - (button_sprite_size.height + 10), "Throw!"
 )
 shop_goback_button = ButtonSmall(
-    DISPLAY_WIDTH - 200, DISPLAY_HEIGHT / 2 - button_small_sprite_size.height, "Back"
+    1920 - 200, 1080 / 2 - button_small_sprite_size.height, "Back"
 )
 
 
@@ -618,7 +647,7 @@ def draw_player_health(surface: pygame.Surface, total_lives):
 
 def draw_round_number(surface: pygame.Surface, current_round: int):
     for index in range(3):
-        x = DISPLAY_WIDTH - 60 - (index * 40)
+        x = 1920 - 60 - (index * 40)
         if index < current_round:
             surface.blit(round_cell_on, (x, 20))
         else:
@@ -637,14 +666,20 @@ enemy_render_roll_text = shop_font.render("I haven't rolled yet", True, (0, 0, 0
 player_reaction_text = dialogue_font.render("", True, (0, 0, 0))
 enemy_reaction_text = dialogue_font.render("", True, (0, 0, 0))
 
-shopkeeper_text = shop_font.render("", True, (0, 0, 0))
+shopkeeper_text = button_font.render("", True, (0, 0, 0))
 main_menu_timer = 0
 main_menu_timer_max = 3
 
+round_result_text = None
+round_result_timer = 0
+ROUND_RESULT_DURATION = 120 # total number of frames the message is visible for
+ROUND_RESULT_FADE_FRAMES = 30 # How many frames are used for fading
+
+def render_round_result(text: str, color) -> pygame.surface:
+    return font.render(text, True, color)
 
 def render_roll_text(roll) -> pygame.Surface:
     return font.render(f"I rolled a {roll}!", True, (0, 0, 0))
-
 
 def player_speak_text(text, text_font=dialogue_font) -> pygame.Surface:
     return text_font.render(text, True, (0, 0, 0))
@@ -668,20 +703,28 @@ def wrap_text(text: str, text_font: pygame.font.Font, max_width: int) -> list[st
     return lines
 
 def render_wrapped_text(
-    text: str, text_font: pygame.font.Font, color, max_width: int, line_spacing: int = 5
+    text: str,
+    text_font: pygame.font.Font,
+    color,
+    max_width: int,
+    line_spacing: int = 5
 ) -> pygame.Surface:
     lines = wrap_text(text, text_font, max_width)
+
+    if not lines:
+        return pygame.Surface((1, 1), pygame.SRCALPHA)
+
     line_surfaces = [text_font.render(line, True, color) for line in lines]
 
-    total_height = sum(s.height for s in line_surfaces) + line_spacing * (len(line_surfaces) - 1)
-    width = max(s.width for s in line_surfaces)
+    width = max(surface.get_width() for surface in line_surfaces)
+    total_height = sum(surface.get_height() for surface in line_surfaces) + line_spacing * (len(line_surfaces) - 1)
 
-    wrapped_surface = pygame.Surface((width, total_height), pygame.SRCALPHA)
+    wrapped_surface = pygame.Surface((max(1, width), max(1, total_height)), pygame.SRCALPHA)
 
     y = 0
     for surface in line_surfaces:
         wrapped_surface.blit(surface, (0, y))
-        y += surface.height + line_spacing
+        y += surface.get_height() + line_spacing
 
     return wrapped_surface
 
@@ -698,6 +741,7 @@ start_enemy_timer = False
 
 
 play_sound(pygame.Sound(resource_path("assets/mainMenu.wav")), music_channel)
+
 
 while True:
     for event in pygame.event.get():
@@ -723,6 +767,10 @@ while True:
                         pygame.display.set_caption("Roll the Bones...")
                         game_state = game_state.GAME
                         play_sound(transition_sound, sfx_channel, 0.5, 0)
+                        stop_sound(music_channel)
+                        play_sound(
+                            pygame.Sound(resource_path("assets/gambling.wav")), music_channel,
+                        )
                 case game_state.GAME_OVER | game_state.WIN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         game_state = game_state.MENU
@@ -744,9 +792,21 @@ while True:
                 case game_state.SHOP:
                     if shop_goback_button.rect.collidepoint(mx, my):
                         game_state = game_state.GAME
+
+                        stop_sound(music_channel)
+                        play_sound(
+                            pygame.Sound(resource_path("assets/gambling.wav")),
+                            music_channel,
+                        )
                         pygame.display.set_caption("Roll the Bones...")
 
                     for item in store_items:
+                        # If player has no coins
+                        if item.rect.collidepoint(mx, my) and coins < item.price: 
+                            shopkeeper_text = render_wrapped_text(
+                                get_dialogue("shopkeeper_no_money"), shop_font, (0, 0, 0), 400
+                            )
+
                         if item.rect.collidepoint(mx, my) and coins >= item.price:
                             # logger.info(f"Bought store item for ${item.price}")
                             play_sound(buy_sound, sfx_channel, loops=0)
@@ -796,6 +856,9 @@ while True:
                         game_state = game_state.SHOP
                         stop_sound(music_channel)
                         play_sound(shop_sound, music_channel)
+                        shopkeeper_text = render_wrapped_text(
+                            get_dialogue("shopkeeper_entry"), shop_font, (0, 0, 0), 400
+                        )
                         pygame.display.set_caption("Roll the Bones... | Shop")
                     selected = [i for i in player_dice.inventory if i.selected]
                     for die in player_dice.inventory:
@@ -809,6 +872,11 @@ while True:
                         # logger.debug("throwing die")
                         # only able to throw if dice is selected
                         if len(selected):
+                            for die in selected:
+                                roll_die(die)
+
+                            last_thrown_dice = selected.copy()
+                            
                             player_dice.throw()
                             # Play rolling sfx
                             play_sound(random.choice(roll_sfx), sfx_channel, loops=0)
@@ -831,28 +899,27 @@ while True:
             main_menu_timer = 0
 
         display.blit(
-            menu_title_image, (DISPLAY_WIDTH / 2 - (menu_title_image.width / 2), 150)
+            menu_title_image, (1920 / 2 - (menu_title_image.width / 2), 150)
         )
 
         display.blit(
             play_text,
             (
-                DISPLAY_WIDTH / 2 - play_text.width / 2,
-                (DISPLAY_HEIGHT / 2 - play_text.height / 2) - 100,
+                1920 / 2 - play_text.width / 2,
+                (1080 / 2 - play_text.height / 2) - 100,
             ),
         )
 
     if game_state == game_state.SHOP:
-        # buy power ups
         # choose dice
 
         display.blit(shop_background, (0, 0))
 
         # draw dialogue box, right below the shopkeeper's mouth
-        draw_dialogue_box(display, DISPLAY_WIDTH * 2 / 7 + 40, DISPLAY_HEIGHT * 2 / 5 - 20)
+        draw_dialogue_box(display, 1920 * 2 / 7 + 40, 1080 * 2 / 5 - 75, flip=True)
         display.blit(
             shopkeeper_text, (
-                DISPLAY_WIDTH * 2 / 7 + 60, DISPLAY_HEIGHT * 2 / 5
+                1920 * 2 / 7 + 60, 1080 * 2 / 5
             )
         )
 
@@ -860,10 +927,10 @@ while True:
         display.blit(
             shop_text,
             (
-                DISPLAY_WIDTH * 3 / 4
+                1920 * 3 / 4
                 - shop_text.width / 4
                 - 25,  # On right side, on top of the Purple cloth
-                DISPLAY_HEIGHT / 10 - shop_text.height / 2,
+                1080 / 10 - shop_text.height / 2,
             ),
         )
 
@@ -875,11 +942,11 @@ while True:
 
         # draw money
         display.blit(
-            coin_sprite, (DISPLAY_WIDTH - (coin_sprite.get_rect().width + 150), 30)
+            coin_sprite, (1920 - (coin_sprite.get_rect().width + 150), 30)
         )
         display.blit(
             shop_font.render(f"{coins} Coins", False, (255, 255, 255)),
-            (DISPLAY_WIDTH - 150, 35),
+            (1920 - 150, 35),
         )
 
         for item in store_items:
@@ -893,26 +960,26 @@ while True:
         draw_player_health(display, total_lives)
         draw_round_number(display, current_round)
 
-        display.blit(tile_sprite_long, (0, DISPLAY_HEIGHT - 200))
+        display.blit(tile_sprite_long, (0, 1080 - 200))
 
         # draw PLAYER dialogue box
-        draw_dialogue_box(display, 150, DISPLAY_HEIGHT // 2)
-        display.blit(player_render_roll_text, (175, DISPLAY_HEIGHT // 2 + 20))
+        draw_dialogue_box(display, 150, 1080 // 2)
+        display.blit(player_render_roll_text, (175, 1080 // 2 + 20))
         display.blit(
-            player_reaction_text, (175, DISPLAY_HEIGHT // 2 + 20 + player_reaction_text.height + 5
-                                   )
+            player_reaction_text, (175, 1080 // 2 + 20 + player_reaction_text.height + 5
+                                )
         )
 
         # draw ENEMY dialogue box
         draw_dialogue_box(
-            display, DISPLAY_WIDTH - 500, DISPLAY_HEIGHT // 10, reverse=True
+            display, 1920 - 500, 1080 // 10, reverse=True
         )
         display.blit(
-            enemy_render_roll_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 90)
+            enemy_render_roll_text, (1920 - 480, 1080 // 10 + 90)
         )
         display.blit(
-            enemy_reaction_text, (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20 + enemy_render_roll_text.height + 5
-                                  )
+            enemy_reaction_text, (1920 - 480, 1080 // 10 + 90 + enemy_render_roll_text.height
+                                )
         )
 
         # draw current roll objective
@@ -925,7 +992,7 @@ while True:
         for die in player_dice.inventory:
             if die.selected:
                 pygame.draw.circle(
-                    display, pygame.Color("yellow"), die.rect.center, die.rect.width, 3
+                    display, pygame.Color("Blue"), die.rect.center, die.rect.width, 3
                 )
 
         # pygame.draw.rect(display, (255, 0, 0), player_dice.get_rect())
@@ -936,8 +1003,27 @@ while True:
         shop_button.draw(display)
         throw_button.draw(display)
 
+        if round_result_timer > 0:
+            round_result_timer -= 1
+
+            if round_result_timer < ROUND_RESULT_FADE_FRAMES:
+                alpha = int(255 * (round_result_timer / ROUND_RESULT_FADE_FRAMES))
+            else:
+                alpha = 255
+
+            faded_surface = round_result_text.copy()
+            faded_surface.fill((255, 255, 255, alpha), special_flags=pygame.BLEND_RGBA_MULT)
+
+            display.blit(
+                faded_surface,
+                (
+                    1920 / 2 - faded_surface.width / 2,
+                    1080 * 7/8 - faded_surface.height / 2,
+                ),
+            )
+
         display.blit(
-            round_num_text, (DISPLAY_WIDTH / 2 - round_num_text.width / 2, 620)
+            round_num_text, (1920 / 2 - round_num_text.width / 2, 620)
         )
 
         if start_enemy_timer:
@@ -984,16 +1070,15 @@ while True:
                             ):
                                 total_lives -= 1
                                 enemy_reaction_text = render_wrapped_text(
-                                    get_dialogue("enemy_win"),
-                                    button_font,
-                                    (0, 0, 0),
-                                    400,
+                                    get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400,
                                 )
-                                display.blit(
-                                    enemy_reaction_text, (175, DISPLAY_HEIGHT // 2)
+                                player_reaction_text = render_wrapped_text(
+                                    get_dialogue("player_lose"), shop_font, (0, 0, 0), 400
                                 )
-                                # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
-                                # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                                round_result_text = render_round_result(get_dialogue("player_loss_announcement"), (179, 38, 36))
+                                round_result_timer = ROUND_RESULT_DURATION
+                                # display.blit(player_speak_text("I lost... (ow)"), (175, 1080 // 2 + 20))
+                                # display.blit(player_speak_text("I won!"), (1920 - 480, 1080 // 10 + 20))
                                 if total_lives == 0:
                                     game_state = GameState.GAME_OVER
                                     pygame.display.set_caption(
@@ -1001,18 +1086,23 @@ while True:
                                     )
                             else:
                                 # the player won
-                                coins += 1
+                                coins += 3
                                 total_lives += 1
                                 enemy_reaction_text = render_wrapped_text(
                                     get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
                                 )
+                                player_reaction_text = render_wrapped_text(
+                                    get_dialogue("player_win"), shop_font, (0, 0, 0), 400
+                                )
+                                round_result_text = render_round_result(get_dialogue("player_win_announcement"), (35, 101, 51))
+                                round_result_timer = ROUND_RESULT_DURATION
                                 if total_lives > 9:
                                     game_state = GameState.WIN
                                     pygame.display.set_caption(
                                         "Roll the Bones... | You Won!"
                                     )
-                                # display.blit(player_speak_text("I won!"), (175, DISPLAY_HEIGHT // 2 + 20))
-                                # display.blit(player_speak_text("I lost!?"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                                # display.blit(player_speak_text("I won!"), (175, 1080 // 2 + 20))
+                                # display.blit(player_speak_text("I lost!?"), (1920 - 480, 1080 // 10 + 20))
 
                     case Objective.ROLL_LOWEST_NUM:
                         if current_round < 3:
@@ -1043,48 +1133,36 @@ while True:
                                 enemy_reaction_text = render_wrapped_text(
                                     get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400
                                 )
-                                # display.blit(player_speak_text("I lost... (ow)"), (175, DISPLAY_HEIGHT // 2 + 20))
-                                # display.blit(player_speak_text("I won!"), (DISPLAY_WIDTH - 480, DISPLAY_HEIGHT // 10 + 20))
+                                player_reaction_text = render_wrapped_text(
+                                    get_dialogue("player_lose"), shop_font, (0, 0, 0), 400
+                                )
+                                round_result_text = render_round_result(get_dialogue("player_loss_announcement"), (179, 38, 36))
+                                round_result_timer = ROUND_RESULT_DURATION
+                                # display.blit(player_speak_text("I lost... (ow)"), (175, 1080 // 2 + 20))
+                                # display.blit(player_speak_text("I won!"), (1920 - 480, 1080 // 10 + 20))
                                 if total_lives == 0:
                                     game_state = GameState.GAME_OVER
                                     pygame.display.set_caption(
                                         "Roll the Bones... | Game Over"
                                     )
                             else:
-                                coins += 1
+                                coins += 3
                                 total_lives += 1
                                 enemy_reaction_text = render_wrapped_text(
                                     get_dialogue("enemy_lose"), shop_font, (0, 0, 0), 400
                                 )
+                                player_reaction_text = render_wrapped_text(
+                                    get_dialogue("player_lose"), shop_font, (0, 0, 0), 400
+                                )
+                                round_result_text = render_round_result(get_dialogue("player_win_announcement"), (35, 101, 51))
+                                round_result_timer = ROUND_RESULT_DURATION
                                 if total_lives > 9:
                                     game_state = GameState.WIN
                                     pygame.display.set_caption(
                                         "Roll the Bones... | You Won!"
                                     )
 
-                for die in player_dice.inventory:
-                    # print("randomizing die")
-                    match die.category:
-                        case DieCategory.FAIR:
-                            die.value = random.randint(1, 6)
-                            die.color = random.choice(["red", "white"])
-                            die.image = die.render_surface()
-                        case DieCategory.EVEN_ONLY:
-                            die.value = random.choice([2, 4, 6])
-                            die.color = random.choice(["red", "white"])
-                            die.image = die.render_surface()
-                        case DieCategory.ODD_ONLY:
-                            die.value = random.choice([1, 3, 5])
-                            die.color = random.choice(["red", "white"])
-                            die.image = die.render_surface()
-                        case DieCategory.HIGH_ROLL:
-                            die.value = random.choice([5, 6])
-                            die.color = random.choice(["red", "white"])
-                            die.image = die.render_surface()
-                        case DieCategory.LOW_ROLL:
-                            die.value = random.choice([1, 2])
-                            die.color = random.choice(["red", "white"])
-                            die.image = die.render_surface()
+                for die in last_thrown_dice:
                     if isinstance(die.uses, int):
                         if die.uses == 1:
                             player_dice.inventory.remove(die)
@@ -1097,8 +1175,8 @@ while True:
         display.blit(
             game_over_text,
             (
-                DISPLAY_WIDTH / 2 - game_over_text.width / 2,
-                DISPLAY_HEIGHT / 2 - game_over_text.height / 2,
+                1920 / 2 - game_over_text.width / 2,
+                1080 / 2 - game_over_text.height / 2,
             ),
         )
 
@@ -1108,8 +1186,8 @@ while True:
         display.blit(
             game_win_text,
             (
-                DISPLAY_WIDTH / 2 - game_win_text.width / 2,
-                DISPLAY_HEIGHT / 2 - game_win_text.height / 2,
+                1920 / 2 - game_win_text.width / 2,
+                1080 / 2 - game_win_text.height / 2,
             ),
         )
 
