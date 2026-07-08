@@ -1055,20 +1055,14 @@ while True:
                                     len(player_dice.roll_history) - 1
                                 ]
                                 ):
-                                player_rounds_won += 1
+                                enemies_rounds_won += 1
                             else:
-                                enemy_rounds_won += 1
+                                player_rounds_won += 1
                         else:
                             current_round = 1
                             round_num_text = render_round_num_text(current_round)
                             current_objective = get_random_objective()
-
-                            if (
-                                enemy_dice.total()
-                                > player_dice.roll_history[
-                                    len(player_dice.roll_history) - 1
-                                ]
-                            ):
+                            if player_rounds_won < enemy_rounds_won:
                                 total_lives -= 1
                                 enemy_reaction_text = render_wrapped_text(
                                     get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400,
@@ -1104,7 +1098,8 @@ while True:
                                     )
                                 # display.blit(player_speak_text("I won!"), (175, 1080 // 2 + 20))
                                 # display.blit(player_speak_text("I lost!?"), (1920 - 480, 1080 // 10 + 20))
-
+                            player_rounds_won = 0
+                            enemy_rounds_won = 0
                     case Objective.ROLL_LOWEST_NUM:
                         if current_round < 3:
                             current_round += 1
@@ -1115,22 +1110,17 @@ while True:
                                     len(player_dice.roll_history) - 1
                                 ]
                                 ):
-                                player_rounds_won += 1
-                            else:
                                 enemy_rounds_won += 1
+                            else:
+                                player_rounds_won += 1
 
                         else:
                             current_round = 1
-                            player_rounds_won = 0
-                            enemy_rounds_won = 0
+
                             round_num_text = render_round_num_text(current_round)
                             current_objective = get_random_objective()
-                            if (
-                                enemy_dice.total()
-                                < player_dice.roll_history[
-                                    len(player_dice.roll_history) - 1
-                                ]
-                            ):
+                            if player_rounds_won < enemy_rounds_won:
+
                                 total_lives -= 1
                                 enemy_reaction_text = render_wrapped_text(
                                     get_dialogue("enemy_win"), shop_font, (0, 0, 0), 400
@@ -1163,6 +1153,8 @@ while True:
                                     pygame.display.set_caption(
                                         "Roll the Bones... | You Won!"
                                     )
+                            player_rounds_won = 0
+                            enemy_rounds_won = 0
 
                 for die in last_thrown_dice:
                     if isinstance(die.uses, int):
