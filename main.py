@@ -743,11 +743,15 @@ start_enemy_timer = False
 play_sound(pygame.Sound(resource_path("assets/mainMenu.wav")), music_channel)
 
 
+def _exit():
+    pygame.quit()
+    sys.exit()
+    
+
 while True:
     for event in pygame.event.get():
         if event.type == pygame.QUIT:
-            pygame.quit()
-            sys.exit()
+            _exit()
 
         if event.type == pygame.MOUSEMOTION:
             # logger.debug((mx, my))
@@ -771,6 +775,8 @@ while True:
                         play_sound(
                             pygame.Sound(resource_path("assets/gambling.wav")), music_channel,
                         )
+                    elif event.key == pygame.K_ESCAPE:
+                        _exit()
                 case game_state.GAME_OVER | game_state.WIN:
                     if event.key == pygame.K_RETURN or event.key == pygame.K_SPACE:
                         game_state = game_state.MENU
