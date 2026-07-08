@@ -1061,6 +1061,7 @@ while True:
                         else:
                             current_round = 1
                             round_num_text = render_round_num_text(current_round)
+                            current_objective = get_random_objective()
 
                             if (
                                 enemy_dice.total()
@@ -1123,6 +1124,7 @@ while True:
                             player_rounds_won = 0
                             enemy_rounds_won = 0
                             round_num_text = render_round_num_text(current_round)
+                            current_objective = get_random_objective()
                             if (
                                 enemy_dice.total()
                                 < player_dice.roll_history[
