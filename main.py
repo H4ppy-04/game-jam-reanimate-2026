@@ -113,7 +113,7 @@ purchased_dice = []
 display = pygame.display.set_mode((1920, 1080))
 
 shop_background = pygame.transform.scale_by(
-    pygame.image.load(resource_path("assets/shopkeeper.png")), 9.5
+    pygame.image.load(resource_path("assets/shopkeeper.png")), 10
 )
 font = pygame.font.Font(resource_path("assets/Fonts/Kenney Pixel Square.ttf"), 50)
 button_font = pygame.font.Font(
@@ -1055,7 +1055,7 @@ while True:
                                     len(player_dice.roll_history) - 1
                                 ]
                                 ):
-                                enemies_rounds_won += 1
+                                enemy_rounds_won += 1
                             else:
                                 player_rounds_won += 1
                         else:
