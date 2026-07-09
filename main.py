@@ -675,7 +675,7 @@ round_result_timer = 0
 ROUND_RESULT_DURATION = 120 # total number of frames the message is visible for
 ROUND_RESULT_FADE_FRAMES = 30 # How many frames are used for fading
 
-def render_round_result(text: str, color) -> pygame.surface:
+def render_round_result(text: str, color) -> pygame.Surface:
     return font.render(text, True, color)
 
 def render_roll_text(roll) -> pygame.Surface:
