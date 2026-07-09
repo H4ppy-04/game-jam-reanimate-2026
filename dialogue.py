@@ -75,7 +75,7 @@ DIALOGUE = {
     ],
     "shopkeeper_no_money": [
         # TODO
-    ]
+    ],
 }
 
 
