@@ -875,22 +875,23 @@ while True:
                                 if die.selected == False:
                                     die.selected = True
                     if throw_button.rect.collidepoint(mx, my):
-                        # logger.debug("throwing die")
-                        # only able to throw if dice is selected
-                        if len(selected):
-                            for die in selected:
-                                roll_die(die)
+                        if not player_dice.in_center:
+                            # logger.debug("throwing die")
+                            # only able to throw if dice is selected
+                            if len(selected):
+                                for die in selected:
+                                    roll_die(die)
 
-                            last_thrown_dice = selected.copy()
-                            
-                            player_dice.throw()
-                            # Play rolling sfx
-                            play_sound(random.choice(roll_sfx), sfx_channel, loops=0)
+                                last_thrown_dice = selected.copy()
+                                
+                                player_dice.throw()
+                                # Play rolling sfx
+                                play_sound(random.choice(roll_sfx), sfx_channel, loops=0)
 
-                            player_render_roll_text = render_roll_text(
-                                player_dice.total()
-                            )
-                            start_enemy_timer = True
+                                player_render_roll_text = render_roll_text(
+                                    player_dice.total()
+                                )
+                                start_enemy_timer = True
 
                 case game_state.GAME_OVER | game_state.WIN:
                     game_state = game_state.MENU
