@@ -9,6 +9,8 @@
 This is a game where you can gamble your life away in pursuit of victory. By rolling dice in alignment with various objectives, you can beat the enemy to acquire coins.
 However, being too reckless or not playing strategically, might just cost you everything. 
 
+<a href="https://itch.io/jam/mq-reanimate-game-jam/rate/4755547">See the project on Itch</a>
+
 ## Features
  - Buy items in the shop to use in game
  - Use artifacts/powerups
